@@ -10,10 +10,11 @@
     "start": "node --env-file-if-exists=.env server/start.js",
     "build": "vite build",
     "dev": "node server/dev.js",
-    "test": "node --test test/*.test.js",
+    "test": "node --env-file-if-exists=.env --test test/*.test.js",
     "test:browser": "npm run build && node test/mobile.mjs"
   },
   "dependencies": {
+    "dotenv": "^18.0.10",
     "express": "^5.1.0",
     "lucide-react": "^0.468.0",
     "luxon": "^3.7.2",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
+    "cross-env": "^10.1.0",
     "mongodb-memory-server-core": "^10.2.0",
     "vite": "^7.1.0"
   }
