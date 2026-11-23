@@ -1,0 +1,284 @@
+header.ops-header, main.ops-main { --ops-header-height: 68px; }
+header.ops-header {
+  position: sticky; top: 0; z-index: 10; height: var(--ops-header-height);
+  background: #103b2e;
+  border-bottom: 1px solid #39624f;
+  color: #fff;
+}
+.ops-header .headinner {
+  width: 100%; max-width: none; height: 100%; min-height: 0;
+  padding: 10px clamp(16px, 2.5vw, 40px); gap: 24px;
+}
+.ops-header .brand, .ops-header .brand span { color: white; }
+.ops-header .brand i { color: #142a22; }
+.ops-venue { border-left: 1px solid #507965; padding-left: 22px; font-size: .88rem; }
+.ops-header .userbtn { background: #275440; color: white; }
+.ops-header .userbtn svg { background: transparent; }
+main.ops-main { width: 100%; max-width: none; margin: 0; padding: 0; background: #f3f5f7; min-height: calc(100dvh - var(--ops-header-height)); }
+.admin-workspace {
+  display: grid; grid-template-columns: 206px minmax(0,1fr); color: #233243;
+  --border: #d8dfe5;
+}
+.ops-sidebar {
+  background: #142d27; color: white; padding: 28px 14px;
+  position: sticky; top: var(--ops-header-height); z-index: 5; align-self: start;
+  height: calc(100dvh - var(--ops-header-height)); overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.ops-sidebar h1 { font-size: .98rem; font-weight: 650; letter-spacing: -.015em; margin: 0 12px 24px; }
+.ops-sidebar > small { color: #c1d8ca; font-size: .72rem; margin: auto 10px 40px; }
+.admin-workspace .admintabs { display: grid; align-items: stretch; gap: 8px; margin: 0; }
+.admin-workspace .admintabs button {
+  justify-content: flex-start; min-height: 43px; padding: 9px 13px; gap: 11px;
+  border: 0; border-radius: 6px; color: #e1eee6; background: transparent;
+}
+.admin-workspace .admintabs button:hover { background: #2c5943; }
+.admin-workspace .admintabs button.pressed { background: #d9f4ba; color: #1c3927; }
+.ops-content { padding: clamp(18px, 3vw, 45px); min-width: 0; }
+.admin-workspace .panel {
+  max-width: 1480px; margin: 0 auto; padding: clamp(16px, 2.2vw, 32px);
+  background: white; border: 1px solid #dbe1e7; border-top: 3px solid #334d5f;
+  border-radius: 8px; box-shadow: 0 3px 12px #23324308;
+}
+.admin-workspace .panel.narrow { max-width: 720px; margin-left: 0; }
+.admin-workspace .panel h2 { font-size: clamp(1.45rem, 2.3vw, 2rem); letter-spacing: -.04em; }
+.admin-workspace .filters { margin: 20px 0 12px; padding: 14px; border-radius: 6px; background: #f2f5f7; display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+.admin-workspace .filters label { margin: 0; min-width: 160px; flex: 1 1 160px; }
+.admin-workspace .primary { background: #204d41; color: white; }
+.court-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-top: 16px; align-items: start; }
+.admin-workspace .daycourt { padding: 0; min-width: 0; border: 1px solid #dbe1e7; border-radius: 7px; overflow: hidden; }
+.admin-workspace .daycourt h3 { display:flex; align-items:center; gap:10px; padding:12px 14px; background:#edf2f5; }
+.daycourt .sporticon { width:24px; height:24px; color:#426378; }
+.admin-workspace .scheduleline { padding:10px 14px; margin:0; border-top:1px solid #e6ebee; font-variant-numeric:tabular-nums; }
+.admin-workspace .daycourt > .badge { margin:12px; }
+.admin-workspace .entry > small, .ops-directory small, .ops-payment small { display:block; margin:4px 0; color:#546575; }
+.ops-directory { margin-top:12px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(270px,100%),1fr)); gap:0 20px; }
+.ops-directory button { display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:left; padding:12px 8px; border:0; border-bottom:1px solid #dbe1e7; border-radius:0; overflow-wrap:anywhere; }
+.ops-directory button:hover { background:#f2f5f7; }
+.ops-directory small { font-weight:400; }
+.ops-payment { display:grid; grid-template-columns:1fr 1.4fr auto auto; align-items:center; gap:16px; padding:16px 0; border-top:1px solid #dbe1e7; overflow-wrap:anywhere; }
+.admin-workspace .financegrid button { background:#f3f6f8; border-color:#d8e1e7; text-align:left; }
+.admin-workspace .rateform { flex-wrap:wrap; }
+main.ops-main:has(.staff-login) { display:grid; align-content:center; padding:24px; }
+.ops-main .staff-login { border-top:4px solid #253d4d; }
+@media(max-width:1000px) { .court-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:767px) {
+  .admin-workspace { display:block; }
+  .ops-sidebar { height:auto; max-height:calc(100dvh - var(--ops-header-height)); padding:4px 12px; }
+  .ops-sidebar h1, .ops-sidebar > small, .ops-venue { display:none; }
+  .admin-workspace .admintabs { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+  .admin-workspace .admintabs button { justify-content:center; gap:5px; padding:7px 3px; font-size:.82rem; }
+  .ops-content { padding:14px 10px; }
+  .ops-payment { grid-template-columns:minmax(0,1fr) auto; }
+  .ops-payment > div:nth-child(2) { grid-row:2; }
+  .ops-payment > strong { grid-row:1; grid-column:2; }
+}
+.ops-filters { border-bottom:1px solid #dbe1e7; padding-bottom:10px; }
+.ops-filters summary { cursor:pointer; font-size:.9rem; font-weight:650; padding-block:8px; }
+.admin-workspace .ops-filters .filters { margin-top:4px; }
+.admin-workspace .financegrid button[aria-pressed="true"] { border-color:#315f51; box-shadow:inset 0 -3px #315f51; }
+
+/* Staff dashboard */
+header.ops-header {
+  background: repeating-radial-gradient(ellipse at 30% -510%, transparent 0 44px, #88ac441f 45px, transparent 47px), #142d27;
+  border-color: #19382e;
+}
+.ops-header .headinner { position: relative; flex-wrap: nowrap; }
+.ops-header .ops-venue { position: absolute; bottom: 4px; left: calc(clamp(16px, 2.5vw, 40px) + 43px); border: 0; padding: 0; font-size: .69rem; color: #dce9e2; }
+.ops-tools { margin-left: auto; }
+.ops-tools + .userbtn { margin-left: -12px; background: #ffffff12; }
+.ops-bell { position: relative; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; background: transparent; color: white; }
+.ops-bell:hover { background: #ffffff15; }
+.ops-bell i { position:absolute; top:5px; right:7px; border-radius:50%; width:7px; height:7px; background:#a8df57; }
+main.ops-main { background: #142d27; }
+.admin-workspace { grid-template-columns: clamp(195px,17vw,250px) minmax(0,1fr); }
+.ops-sidebar {
+  background: url("./assets/Neon Tennis Ball on Emerald Turf.png") center bottom / cover no-repeat;
+}
+.ops-sidebar > small { display:flex; align-items:center; gap:8px; margin:auto -14px -28px; padding:12px 20px; background:#10291fd9; color:white; }
+.admin-workspace .admintabs button { border-radius:10px; }
+.admin-workspace .admintabs button.pressed { background: linear-gradient(120deg,#c2ef71,#98d943); color:#152d1b; }
+.ops-content { min-height:calc(100dvh - var(--ops-header-height)); padding:clamp(20px,2.5vw,40px); background:linear-gradient(145deg,#fbfcfb,#eff3f4); border-radius:24px 0 0; }
+.admin-workspace .panel.schedule-board { background:transparent; border:0; padding:0; box-shadow:none; }
+.schedule-head, .schedule-title { display:flex; align-items:center; gap:12px; }
+.schedule-head { justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; }
+.schedule-title > svg, .schedule-metrics > div > svg { flex:none; box-sizing:content-box; padding:10px; border-radius:50%; background:#e1f1d7; color:#298438; width:24px; height:24px; }
+.schedule-title h2 { margin:0 0 2px; line-height:1.1; }
+.schedule-title small { color:#50635c; }
+
+/* ── date nav row inside filters ── */
+.filter-date-row { display:flex; align-items:center; gap:7px; }
+.filter-date-label { position:relative; display:flex; align-items:center; gap:6px; margin:0; height:38px; min-height:38px; padding:0 13px; background:white; border:1px solid #dce4de; border-radius:10px; box-shadow:0 2px 6px #162b2010; cursor:pointer; flex:1; justify-content:center; white-space:nowrap; }
+.filter-date-label svg { color:#348444; width:17px; }
+.filter-date-label input { position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+.filter-date-label:focus-within { outline:2px solid #298438; }
+.filter-date-row button { margin:0; height:38px; min-height:38px; padding:0 11px; background:white; border:1px solid #dce4de; border-radius:10px; box-shadow:0 2px 6px #162b2010; display:flex; align-items:center; }
+.filter-date-row button svg { width:17px; }
+
+/* ── Day / Month / Year toggle ── */
+.view-mode-toggle { display:flex; border:1px solid #dce4de; border-radius:10px; overflow:hidden; background:white; height:38px; box-shadow:0 2px 6px #162b2010; }
+.view-mode-toggle button { flex:1; height:100%; padding:0 18px; border:0; border-radius:0; border-right:1px solid #dce4de; background:transparent; color:#40594a; font-size:.84rem; font-weight:600; }
+.view-mode-toggle button:last-child { border-right:0; }
+.view-mode-toggle button:hover { background:#f0f7f1; }
+.view-mode-toggle button.vm-active { background:linear-gradient(120deg,#c2ef71,#98d943); color:#152d1b; }
+
+/* ── range booking list (Month/Year view) ── */
+.range-booking-list { margin-top:10px; display:flex; flex-direction:column; border:1px solid #e2e9e4; border-radius:14px; background:white; overflow:hidden; }
+.range-booking-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:10px 16px; border-top:1px solid #e6ebee; font-size:.84rem; }
+.range-booking-row:first-child { border-top:0; }
+.slot-court { color:#50635c; font-size:.8rem; }
+.schedule-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(8px,1.4vw,22px); margin-bottom: 16px; }
+.schedule-metrics > div, .admin-workspace .daycourt { border:1px solid #e2e9e4; border-radius:14px; box-shadow:0 4px 14px #21382a0c; background:white; }
+.schedule-metrics > div { display:flex; align-items:center; gap:12px; padding:clamp(12px,1.5vw,22px); background:linear-gradient(115deg,white,#f4f9f5); }
+.schedule-metrics strong, .schedule-metrics span { display:block; }
+.schedule-metrics strong { font-size:1.55rem; line-height:1.2; font-variant-numeric:tabular-nums; }
+.schedule-metrics span { font-size:.84rem; }
+.schedule-metrics .vip { background:linear-gradient(115deg,white,#f7f3fb); }
+.schedule-metrics .vip > svg { background:#eee4fb; color:#7845bb; }
+.schedule-metrics .pending { background:linear-gradient(115deg,white,#fbf6ef); }
+.schedule-metrics .pending > svg { background:#ffecd7; color:#ab610f; }
+.schedule-controls { margin:16px 0 10px; }
+.schedule-controls-head { display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
+.schedule-controls-head h3 { margin:0; font-size:.88rem; font-weight:700; color:#314e3e; letter-spacing:-.01em; }
+.schedule-controls-head small { color:#50635c; font-size:.8rem; }
+
+/* Filter grid: date+toggle span full width, then sport | court | buttons in one row */
+.schedule-controls .filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: end;
+  gap: 10px;
+}
+/* Row 1: date nav + toggle span all 3 columns */
+.schedule-controls .filters .filter-date-row  { grid-column: 1 / 2; grid-row: 1; }
+.schedule-controls .filters .view-mode-toggle { grid-column: 2 / 4; grid-row: 1; }
+/* Row 2: sport | court | buttons */
+.schedule-controls .filters > label:nth-of-type(1) { grid-column: 1; grid-row: 2; }
+.schedule-controls .filters > label:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+.schedule-controls .filters .inline             { grid-column: 3; grid-row: 2; white-space:nowrap; }
+.admin-workspace .court-grid { margin-top:10px; }
+/* subtle fade when navigating to a new day — no blank flash */
+.court-grid--loading { opacity: 0.45; pointer-events: none; transition: opacity 0.15s; }
+.admin-workspace .daycourt h3 {
+  color:white; margin:0; padding:12px 18px; background:
+  linear-gradient(90deg,#193e30 10%,#18392def 48%,#17372b40), var(--court-image) center / cover;
+}
+[data-court="cricket-indoor"] { --court-image:url("./assets/Premium Indoor Cricket Training Facility.png"); }
+[data-court="cricket-outdoor"] { --court-image:url("./assets/Sunny Outdoor Cricket Field with Yellow Stumps.png"); }
+[data-court="tennis-indoor"] { --court-image:url("./assets/Modern Indoor Tennis Court.png"); }
+[data-court="tennis-outdoor"] { --court-image:url("./assets/Sunny Green Tennis Court.png"); }
+[data-court="padel-indoor"] { --court-image:url("./assets/Modern Indoor padel Court.png"); }
+[data-court="padel-outdoor"] { --court-image:url("./assets/Sunny Green padel Court .png"); }
+.daycourt h3 .sporticon { color:#b5e861; }
+.admin-workspace .daycourt .scheduleline { display:flex; flex-wrap:wrap; font-size:.84rem; }
+.slot-time { display:inline-flex; align-items:center; gap:7px; }
+.slot-time svg { width:15px; height:15px; color:#54675c; }
+@media(min-width:768px) and (max-width:1023px) {
+  .admin-workspace .court-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .schedule-metrics > div { gap:6px; padding:10px; }
+  .schedule-metrics > div > svg { width:18px; height:18px; padding:6px; }
+}
+@media(max-width:767px) {
+  .ops-sidebar { background:#142d27; }
+  .ops-sidebar > small { display:none; }
+  .ops-content { border-radius:16px 16px 0 0; padding:16px 12px; }
+  .schedule-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .schedule-metrics > div { padding:10px; gap:8px; }
+  .schedule-metrics > div > svg { width:20px; height:20px; padding:7px; }
+
+}
+
+.finance-period { color:#425f51; font-weight:600; }
+.finance-panel .financegrid button { border-radius:10px; padding:14px; }
+.finance-panel .financegrid button[aria-pressed="true"] { background:#e6f3e5; }
+.finance-switch, .finance-pages { display:flex; align-items:center; gap:6px; }
+.finance-switch button { border-radius:8px; min-height:36px; }
+.finance-switch button[aria-pressed="true"] { background:#204d41; color:white; }
+.finance-ledger { margin-top:18px; min-width:0; }
+.finance-ledger h3 small { font-weight:400; }
+.finance-ledger input { width:min(100%,290px); }
+.finance-table-scroll { overflow-x:auto; margin-top:12px; }
+.finance-ledger table { width:100%; border-collapse:collapse; font-size:.88rem; }
+.finance-ledger th, .finance-ledger td { text-align:left; padding:12px 10px; border-bottom:1px solid #dce6de; }
+.finance-ledger th { background:#eff5f0; color:#355244; }
+.finance-ledger th:last-child, .finance-ledger td:last-child { text-align:right; white-space:nowrap; }
+.finance-ledger td small { display:block; margin-top:4px; }
+.finance-pages { justify-content:flex-end; margin-top:12px; }
+
+.staff-menu-toggle { display:none; }
+.review-confirm { padding:12px; border-radius:8px; background:#eff5ec; }
+@media(max-width:1023px) {
+  .admin-workspace .schedule-controls .filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:none; }
+  .admin-workspace .schedule-controls .filters > * { grid-column:auto; grid-row:auto; min-width:0; }
+  .admin-workspace .schedule-controls .filters :is(.filter-date-row,.view-mode-toggle,.inline) { grid-column:1/-1; }
+  .admin-workspace .filter-date-row label { min-width:0; }
+  .admin-workspace .schedule-controls .inline { flex-wrap:wrap; }
+  .filter-date-row button,.filter-date-label,.view-mode-toggle { min-height:44px; }
+  .filter-date-row button { min-width:44px; }
+  .admin-workspace .daycourt { min-width:0; overflow-wrap:anywhere; }
+  [data-court="cricket-indoor"] { --court-image:url("./assets/cricket-indoor-mobile.webp"); }
+  [data-court="cricket-outdoor"] { --court-image:url("./assets/cricket-outdoor-mobile.webp"); }
+  [data-court="tennis-indoor"],[data-court="padel-indoor"] { --court-image:url("./assets/racket-indoor-mobile.webp"); }
+  [data-court="tennis-outdoor"],[data-court="padel-outdoor"] { --court-image:url("./assets/racket-outdoor-mobile.webp"); }
+}
+@media(max-width:767px) {
+  .ops-header .headinner { gap:8px; }
+  .ops-tools + .userbtn { margin:0; }
+  .ops-header .brand { font-size:1.3rem; }
+  .ops-header .userbtn { min-width:0; max-width:45%; overflow-wrap:anywhere; }
+  .ops-header .ops-bell { width:44px; height:44px; }
+  .staff-menu-toggle { display:flex; align-items:center; gap:8px; background:transparent; border:0; color:white; text-align:left; }
+  .staff-menu-toggle strong { margin-left:auto; }
+  .staff-menu-toggle svg { width:16px; transform:rotate(90deg); }
+  .staff-menu-toggle[aria-expanded="true"] svg { transform:rotate(-90deg); }
+  .admin-workspace .admintabs[data-open="false"] { display:none; }
+  .admin-workspace .admintabs[data-open="true"] { padding:6px 4px 12px; }
+  .admin-workspace .admintabs button { min-height:44px; }
+  .ops-content .panel { overflow-wrap:anywhere; }
+  .ops-payment { gap:6px 10px; }
+  .ops-payment button { grid-column:1/-1; }
+  .admin-workspace .rateform label { min-width:0; }
+  .finance-ledger table, .finance-ledger tbody { display:block; }
+  .finance-ledger thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .finance-ledger tr { display:grid; gap:6px; margin:8px 0; padding:12px; border:1px solid #dce6de; border-radius:10px; }
+  .finance-ledger td,.finance-ledger td:last-child { display:block; padding:0; border:0; white-space:normal; text-align:left; }
+  .finance-ledger td::before { content:attr(data-label); display:block; color:#506257; font-size:.76rem; }
+  .finance-ledger td small { margin:0; }
+  .finance-ledger input { width:100%; }
+}
+@media(max-height:500px) and (orientation:landscape) {
+  .ops-sidebar,.ops-header { position:static; }
+}
+
+.admin-workspace .finance-panel { padding:0; background:transparent; border:0; box-shadow:none; }
+.finance-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:18px 0 24px; }
+.finance-kpis > div { display:flex; gap:12px; align-items:center; padding:16px; border:1px solid #dde6e0; border-radius:13px; background:#edf8ed; box-shadow:0 3px 10px #18442909; }
+.finance-kpis > div:nth-child(2) { background:#edf5fc; color:#174a73; }
+.finance-kpis > div:nth-child(3) { background:#f3effb; color:#583e83; }
+.finance-kpis > div:nth-child(4) { background:#fcf0f0; color:#813d47; }
+.finance-kpis svg { width:38px; height:38px; padding:8px; border-radius:50%; background:#ffffffa8; flex:none; }
+.finance-kpis small,.finance-kpis strong { display:block; }
+.finance-kpis strong { font-size:clamp(1rem,1.5vw,1.55rem); color:#182e28; }
+.finance-kpis small { color:#44594e; }
+.finance-panel .finance-switch { border-bottom:1px solid #adc6b9; }
+.finance-panel .finance-switch button { display:inline-flex; align-items:center; gap:8px; border-radius:8px 8px 0 0; }
+.finance-panel .finance-toolbar { background:transparent; padding:0; }
+.finance-comp input { display:inline; width:auto; min-height:0; }
+.finance-ledger { background:white; border:1px solid #dce6df; border-radius:14px; padding:clamp(12px,1.6vw,24px); }
+.finance-tools,.finance-tools button { display:flex; align-items:center; gap:6px; }
+.finance-tools { max-width:100%; }
+.finance-tools input { min-width:0; margin:0; }
+.finance-tools button { color:#20533e; }
+.finance-id { background:#e1f1db; color:#245034; font-weight:650; padding:3px 7px; border-radius:12px; white-space:nowrap; }
+.finance-details { padding:6px; border:0; }
+.finance-ledger td,.finance-ledger th { padding-inline:7px; }
+@media(max-width:1100px) { .finance-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:767px) {
+  .finance-kpis { gap:8px; }
+  .finance-kpis > div { align-items:flex-start; padding:10px; flex-direction:column; gap:4px; }
+  .finance-kpis svg { width:30px; height:30px; padding:5px; }
+  .finance-tools { width:100%; }
+  .finance-panel .finance-ledger td { padding:0; }
+  .finance-details { min-width:44px; }
+}
