@@ -790,6 +790,7 @@ iframe {
 }
 
 .player-header { background:#123a2d; border-bottom:1px solid #315444; color:#fff; }
+.player-header .icon { color:#173b2c; }
 .player-header .headinner { gap:clamp(12px,3vw,48px); min-height:62px; }
 .player-header .brand, .player-header .brand span, .player-header nav button { color:#fff; }
 .player-header .brand i { color:#173b25; }
