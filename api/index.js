@@ -6,9 +6,40 @@ try {
 import { MongoClient } from "mongodb";
 import { makeApp } from "../server/app.js";
 
-// Connect to MongoDB (Vercel functions are stateless; reuse global client when possible)
-if (!process.env.MONGO_URI) throw new Error("MONGO_URI is required.");
-const client = new MongoClient(process.env.MONGO_URI);
-await client.connect();
-const app = await makeApp(client.db());
-export default app;
+let appPromise;
+
+async function getApp() {
+  if (!appPromise) {
+    appPromise = (async () => {
+      const uri = process.env.MONGO_URI;
+      if (!uri) {
+        throw new Error(
+          "MONGO_URI environment variable is not defined. Please configure MONGO_URI in your Vercel Project Settings > Environment Variables."
+        );
+      }
+      const client = new MongoClient(uri);
+      await client.connect();
+      return makeApp(client.db());
+    })().catch((err) => {
+      appPromise = null; // Reset on failure so subsequent requests can retry
+      throw err;
+    });
+  }
+  return appPromise;
+}
+
+export default async function handler(req, res) {
+  try {
+    if (req.url && req.url.startsWith("/api/index.js")) {
+      req.url = req.url.replace(/^\/api\/index\.js/, "/api") || "/api";
+    }
+    const app = await getApp();
+    return app(req, res);
+  } catch (err) {
+    console.error("Vercel Serverless Function Error:", err);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: err.message,
+    });
+  }
+}
