@@ -27,7 +27,7 @@ test("venue workflow with real MongoDB", async (t) => {
     await client.close();
     await instance?.stop();
   });
-  const app = await makeApp(db, { DEMO_SEED: "true", HOLD_SECONDS: "2" });
+  const app = await makeApp(db, { DEMO_SEED: "true", HOLD_SECONDS: "5" });
   server = app.listen(0, "127.0.0.1");
   await new Promise((r) => server.once("listening", r));
   const url = "http://127.0.0.1:" + server.address().port + "/api";
@@ -188,7 +188,7 @@ test("venue workflow with real MongoDB", async (t) => {
         ).status,
         409,
       );
-      await new Promise((r) => setTimeout(r, 2100));
+      await new Promise((r) => setTimeout(r, 5200));
       assert.equal(await free(630), false);
       assert.equal(
         (await json("/mine", undefined, owner)).find((b) => b.id === booking.id)
@@ -277,7 +277,7 @@ test("venue workflow with real MongoDB", async (t) => {
       { ...base, start: 900, quotedTotal: 4500 },
       player,
     );
-    await new Promise((r) => setTimeout(r, 2100));
+    await new Promise((r) => setTimeout(r, 5200));
     assert.ok(await free(900));
     assert.equal(
       (await request("/bookings/" + x.id + "/receipt", receipt(), player))
