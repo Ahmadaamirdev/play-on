@@ -8,6 +8,16 @@ import { makeApp } from "../server/app.js";
 
 let appPromise;
 
+function getDb(client, uri) {
+  try {
+    const pathname = new URL(uri).pathname;
+    if (pathname && pathname.length > 1) {
+      return client.db(pathname.slice(1));
+    }
+  } catch {}
+  return client.db("playon");
+}
+
 async function getApp() {
   if (!appPromise) {
     appPromise = (async () => {
@@ -19,7 +29,7 @@ async function getApp() {
       }
       const client = new MongoClient(uri);
       await client.connect();
-      return makeApp(client.db());
+      return makeApp(getDb(client, uri));
     })().catch((err) => {
       appPromise = null; // Reset on failure so subsequent requests can retry
       throw err;

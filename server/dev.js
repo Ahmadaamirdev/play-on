@@ -18,7 +18,14 @@ const uri = process.env.MONGO_URI;
 if (!uri) throw new Error("MONGO_URI is required.");
 const client = new MongoClient(uri);
 await client.connect();
-const app = await makeApp(client.db()),
+function getDb(c, u) {
+  try {
+    const p = new URL(u).pathname;
+    if (p && p.length > 1) return c.db(p.slice(1));
+  } catch {}
+  return c.db("playon");
+}
+const app = await makeApp(getDb(client, uri)),
   apiPort = Number(process.env.PORT || 4000);
 const backend = app.listen(apiPort, host);
 const vite = await createServer({
