@@ -77,8 +77,22 @@ export function TimeInput({
           value={value}
           defaultValue={value === undefined ? initialValue : undefined}
           onChange={(e) => {
-            e.target.value = formatTimeInput(e.target.value);
+            const input = e.target;
+            const formatted = formatTimeInput(input.value);
+            const completeHour = /^(?:[2-9]|0[1-9]|1[0-2])$/.test(formatted)
+              && e.nativeEvent.inputType === "insertText";
+            input.value = completeHour ? formatted + ":00" : formatted;
             onChange?.(e);
+            if (completeHour) {
+              const start = formatted.length + 1;
+              requestAnimationFrame(() => input.setSelectionRange(start, start + 2));
+            }
+          }}
+          onBlur={(e) => {
+            if (/^(?:[1-9]|0[1-9]|1[0-2])$/.test(e.target.value)) {
+              e.target.value += ":00";
+              onChange?.(e);
+            }
           }}
           required={required}
         />

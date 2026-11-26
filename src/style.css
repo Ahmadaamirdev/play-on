@@ -881,3 +881,5 @@ main.player-home { width:100%; padding:0 0 22px; background:linear-gradient(150d
   .booking-features { display:grid; gap:12px; }
   .player-home .booked-times li { overflow-wrap:anywhere; }
 }
+
+.player-home .layout .time-control input::placeholder, .time-control input::placeholder { color:#8a9b91; opacity:1; }
