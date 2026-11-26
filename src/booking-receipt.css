@@ -81,3 +81,9 @@ dialog.receipt-screen[open] {
     padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   }
 }
+
+@media (max-width: 760px) {
+  .booking-features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .booking-features > div { flex-direction: column; text-align: center; }
+  .booking-features .feature-description { display: none; }
+}

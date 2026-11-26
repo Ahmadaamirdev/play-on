@@ -188,6 +188,18 @@ test("venue workflow with real MongoDB", async (t) => {
         ).status,
         409,
       );
+      const original = (await json("/mine", undefined, owner)).find(b => b.id === booking.id);
+      const duplicate = { ...original, owner: "another-player", receipt: "other-receipt" };
+      const days = db.collection("days");
+      await days.updateOne({ _id: date }, { $push: { bookings: { $each: [duplicate], $position: 0 } } });
+      try {
+        const path = "/bookings/" + booking.id + "/receipt?" +
+          new URLSearchParams({ date, receipt: original.receipt });
+        assert.equal((await request(path, undefined, owner)).status, 200);
+        assert.equal((await request(path, undefined, foreign)).status, 403);
+      } finally {
+        await days.updateOne({ _id: date }, { $pull: { bookings: { receipt: duplicate.receipt } } });
+      }
       assert.equal(await free(630), false);
       assert.equal(
         (await json("/mine", undefined, owner)).find((b) => b.id === booking.id)

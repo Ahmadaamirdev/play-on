@@ -16,7 +16,7 @@ import {
   time,
   fmt,
   amount,
-  Modal, ReceiptLink,
+  Modal, ReceiptLink, receiptURL,
   Badge,
   Row,
   Entry,
@@ -66,10 +66,7 @@ export default function Admin({ cfg, reload, staffTools }) {
     T(next); M(""); setMenuOpen(false); window.scrollTo(0, 0);
   }
   const pendingCount = queue?.filter(b => b.status === "Pending verification").length ?? 0;
-  useEffect(() => {
-    const id = setInterval(refresh, 30000);
-    return () => clearInterval(id);
-  }, []);
+
   return (
     <div className="admin-workspace">
       {staffTools && createPortal(
@@ -588,7 +585,7 @@ function Payments({ cfg, list, err, refresh, M }) {
           <Row k="Expected amount">{amount(b.total, cfg.currency)}</Row>
           {b.receipt && <>
             <ReceiptLink booking={b}>Open original receipt</ReceiptLink>
-            <iframe title="Uploaded payment receipt" src={"/api/bookings/" + b.id + "/receipt"} />
+            <iframe title="Uploaded payment receipt" src={receiptURL(b)} />
           </>}
           <label>
             Reason for rejection

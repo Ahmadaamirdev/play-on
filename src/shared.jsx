@@ -188,6 +188,10 @@ export function Modal({ title, close, children, className }) {
     </dialog>
   );
 }
+export function receiptURL(booking) {
+  return "/api/bookings/" + encodeURIComponent(booking.id) + "/receipt?" +
+    new URLSearchParams({ date: booking.date, receipt: booking.receipt });
+}
 function ReceiptViewer({ booking, close }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
@@ -195,7 +199,7 @@ function ReceiptViewer({ booking, close }) {
     const controller = new AbortController();
     let url;
     async function load() {
-      const response = await fetch("/api/bookings/" + booking.id + "/receipt", { signal: controller.signal });
+      const response = await fetch(receiptURL(booking), { signal: controller.signal });
       if (!response.ok) throw Error("Receipt could not be loaded.");
       const blob = await response.blob();
       if (controller.signal.aborted) return;
@@ -209,7 +213,7 @@ function ReceiptViewer({ booking, close }) {
       controller.abort();
       if (url) URL.revokeObjectURL(url);
     };
-  }, [booking.id]);
+  }, [booking.id, booking.date, booking.receipt]);
   return <Modal className="receipt-screen" title="Payment receipt" close={close}>
     {file?.pdf && <a className="receipt-download" href={file.url} download={booking.id + ".pdf"}>Download PDF</a>}
     <div className="receipt-canvas">

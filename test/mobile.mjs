@@ -187,16 +187,17 @@ try {
     .click();
   await expect(player.getByRole("heading", {name:"Submit payment receipt"})).toBeVisible();
   await width(player);
-  await player
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "demo.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jKpMAAAAASUVORK5CYII=",
-        "base64",
-      ),
-    });
+  const png = await player.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 400;
+    const context = canvas.getContext("2d");
+    const pixels = context.createImageData(400, 400);
+    for (let i = 0; i < pixels.data.length; i++) pixels.data[i] = i % 4 === 3 ? 255 : Math.random() * 256;
+    context.putImageData(pixels, 0, 0);
+    return canvas.toDataURL("image/png").split(",")[1];
+  });
+  const upload = Buffer.from(png, "base64");
+  await player.locator("input[type=file]").setInputFiles({ name:"demo.png", mimeType:"image/png", buffer:upload });
   await player.getByRole("button", { name: "Submit for verification" }).click();
   await expect(
     player.getByText("Pending verification", { exact: true }),
@@ -205,6 +206,12 @@ try {
   await player.getByRole("button", {name:"View receipt"}).click();
   const viewer = player.getByRole("dialog", {name:"Payment receipt"});
   await expect(viewer.getByRole("img", {name:"Uploaded payment receipt"})).toBeVisible();
+  const stored = await client.db().collection("receipts").findOne({type:"image/jpeg"});
+  assert.ok(stored && stored.data.length() < upload.length);
+  const refreshed = player.waitForResponse(response => response.url() === url + "/api/mine");
+  await player.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await refreshed;
+  await expect(viewer).toBeVisible();
   await viewer.getByRole("button", {name:"Go back"}).click();
   await expect(player.getByRole("heading", {name:"My bookings"})).toBeVisible();
   const pendingTab = admin.getByRole("button", { name: "Payments, 1 awaiting verification" });

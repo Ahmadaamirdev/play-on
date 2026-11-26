@@ -32,6 +32,7 @@ import { bookingTotal, closingTime, openingTime } from "../booking.js";
 import Admin from "./staff";
 import "./style.css";
 import "./booking-receipt.css";
+import { compressReceipt } from "./receipt-upload";
 function App() {
   const [cfg, setCfg] = useState(null),
     [err, setErr] = useState(""),
@@ -143,7 +144,7 @@ function App() {
             </section>
           )
         ) : bookingsPage ? (
-          <Mine cfg={playerConfig} sign={() => setAuth(true)} />
+          <Mine key={playerConfig.user?.id || "guest"} cfg={playerConfig} sign={() => setAuth(true)} />
         ) : (
           <Player
             cfg={playerConfig}
@@ -507,9 +508,9 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
         </aside>
       </div>
       <div className="booking-features">
-        <div><Zap /><span><strong>Easy Booking</strong>Choose your own start and end times</span></div>
-        <div><CalendarCheck2 /><span><strong>Flexible Options</strong>Indoor and outdoor courts for every sport</span></div>
-        <div><ShieldCheck /><span><strong>Payment Receipts</strong>Download a slip after verification</span></div>
+        <div><Zap /><span><strong>Easy Booking</strong><span className="feature-description">Choose your own start and end times</span></span></div>
+        <div><CalendarCheck2 /><span><strong>Flexible Options</strong><span className="feature-description">Indoor and outdoor courts for every sport</span></span></div>
+        <div><ShieldCheck /><span><strong>Payment Receipts</strong><span className="feature-description">Download a slip after verification</span></span></div>
       </div>
       {modal && (
         <Modal title="Player details" close={() => M(false)}>
@@ -565,7 +566,8 @@ function Checkout({ b, cfg, close, done }) {
           const f = new FormData(e.currentTarget);
           B(true);
           try {
-            await api("/bookings/" + b.id + "/receipt", f);
+            f.set("receipt", await compressReceipt(f.get("receipt")));
+            await api("/bookings/" + b.id + "/receipt?date=" + b.date, f);
             done();
           } catch (e) {
             E(e.message);
@@ -596,12 +598,8 @@ function Mine({ cfg, sign }) {
     [b, B] = useState(null);
   const [list, e] = useData(
     () => (cfg.user ? api("/mine") : Promise.resolve([])),
-    [cfg.user?.id, rev],
+    [cfg.user?.id, rev], cfg.user ? 15000 : 0,
   );
-  useEffect(() => {
-    const i = setInterval(() => R((v) => v + 1), 15000);
-    return () => clearInterval(i);
-  }, []);
   return (
     <>
       <h1>My bookings</h1>
@@ -616,7 +614,7 @@ function Mine({ cfg, sign }) {
           {!list && !e && <p role="status">Loading bookings…</p>}
           {list?.length === 0 && <p>Your court bookings will appear here.</p>}
           {list?.map((x) => (
-            <Entry b={x} cfg={cfg} key={x.id}>
+            <Entry b={x} cfg={cfg} key={x.date + ":" + x.id + ":" + x.created}>
               {x.status === "Confirmed" && (
                 <a
                   className="action"

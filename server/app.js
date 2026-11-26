@@ -442,6 +442,19 @@ export async function makeApp(db, env = process.env) {
     if (!d) fail(404, "Booking not found.");
     return d.bookings.find((b) => b.id === id);
   }
+  async function receiptBooking(req) {
+    const match = { id: req.params.id };
+    if (req.user.role !== "admin") match.owner = req.user.id;
+    if (req.query.receipt !== undefined) {
+      check(typeof req.query.receipt === "string", "Invalid receipt.");
+      match.receipt = req.query.receipt;
+    }
+    const query = { bookings: { $elemMatch: match } };
+    if (req.query.date !== undefined) query._id = day(req.query.date);
+    const doc = await days.findOne(query, { projection: { bookings: { $elemMatch: match } } });
+    if (!doc) fail(403, "Access denied.");
+    return doc.bookings[0];
+  }
   const owned = (req, b) => {
     if (b.owner !== req.user.id && req.user.role !== "admin")
       fail(403, "Access denied.");
@@ -471,8 +484,7 @@ export async function makeApp(db, env = process.env) {
     auth,
     upload.single("receipt"),
     async (req, res) => {
-      const b = await record(req.params.id);
-      owned(req, b);
+      const b = await receiptBooking(req);
       const f = req.file;
       check(f, "Choose a receipt.");
       const hex = f.buffer.subarray(0, 8).toString("hex"),
@@ -488,7 +500,7 @@ export async function makeApp(db, env = process.env) {
       await receipts.insertOne({ _id: key, data: f.buffer, type });
       try {
         await change(b.date, (d) => {
-          const x = d.bookings.find((a) => a.id === b.id);
+          const x = d.bookings.find((a) => a.id === b.id && a.owner === b.owner && a.created === b.created);
           if (x?.status !== "Awaiting payment" || !active(x))
             fail(409, "This hold is no longer available.");
           Object.assign(x, { status: "Pending verification", receipt: key });
@@ -501,8 +513,7 @@ export async function makeApp(db, env = process.env) {
     },
   );
   app.get("/api/bookings/:id/receipt", auth, async (req, res) => {
-    const b = await record(req.params.id);
-    owned(req, b);
+    const b = await receiptBooking(req);
     const f = await receipts.findOne({ _id: b.receipt || "" });
     if (!f) fail(404, "Receipt unavailable.");
     res
