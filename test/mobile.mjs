@@ -204,7 +204,7 @@ try {
   await expect(player).toHaveURL(url + "/my-bookings");
   await player.getByRole("button", {name:"View receipt"}).click();
   const viewer = player.getByRole("dialog", {name:"Payment receipt"});
-  await expect(viewer.locator("iframe")).toBeVisible();
+  await expect(viewer.getByRole("img", {name:"Uploaded payment receipt"})).toBeVisible();
   await viewer.getByRole("button", {name:"Go back"}).click();
   await expect(player.getByRole("heading", {name:"My bookings"})).toBeVisible();
   const pendingTab = admin.getByRole("button", { name: "Payments, 1 awaiting verification" });

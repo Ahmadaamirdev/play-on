@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { DateTime } from "luxon";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { closingTime, time } from "../booking.js";
 export { time };
 export async function api(path, body, method) {
@@ -126,6 +126,7 @@ export function PhoneInput() {
     />
   );
 }
+export const bookingDateLabel = d => DateTime.fromISO(d).setLocale("en-GB").toFormat("dd-LLL-yyyy");
 export const fmt = (d) => DateTime.fromISO(d).toFormat("ccc, dd LLL yyyy");
 export const amount = (n, c) => c + " " + Number(n).toLocaleString("en-PK");
 export function useData(fn, deps, pollInterval) {
@@ -164,7 +165,7 @@ export function useData(fn, deps, pollInterval) {
   }, deps);
   return [data, error];
 }
-export function Modal({ title, close, children }) {
+export function Modal({ title, close, children, className }) {
   const ref = useRef(null);
   const headingId = useId();
   useEffect(() => {
@@ -176,7 +177,7 @@ export function Modal({ title, close, children }) {
     };
   }, []);
   return (
-    <dialog ref={ref} aria-labelledby={headingId} onCancel={e => { e.preventDefault(); close(); }}>
+    <dialog className={className} ref={ref} aria-labelledby={headingId} onCancel={e => { e.preventDefault(); close(); }}>
       <div className="modalhead">
         <h2 id={headingId}>{title}</h2>
         <button className="icon" aria-label="Go back" onClick={close}>
@@ -187,13 +188,44 @@ export function Modal({ title, close, children }) {
     </dialog>
   );
 }
+function ReceiptViewer({ booking, close }) {
+  const [file, setFile] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    let url;
+    async function load() {
+      const response = await fetch("/api/bookings/" + booking.id + "/receipt", { signal: controller.signal });
+      if (!response.ok) throw Error("Receipt could not be loaded.");
+      const blob = await response.blob();
+      if (controller.signal.aborted) return;
+      if (!["image/jpeg", "image/png", "application/pdf"].includes(blob.type))
+        throw Error("Unsupported receipt format.");
+      url = URL.createObjectURL(blob);
+      setFile({ url, pdf: blob.type === "application/pdf" });
+    }
+    load().catch(e => { if (!controller.signal.aborted) setError(e.message); });
+    return () => {
+      controller.abort();
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [booking.id]);
+  return <Modal className="receipt-screen" title="Payment receipt" close={close}>
+    {file?.pdf && <a className="receipt-download" href={file.url} download={booking.id + ".pdf"}>Download PDF</a>}
+    <div className="receipt-canvas">
+      {error ? <p role="alert">{error}</p> : !file ? <p role="status">Loading receipt…</p> :
+        file.pdf ? <iframe title="Original payment receipt" src={file.url} /> :
+          <img src={file.url} alt="Uploaded payment receipt" onError={() => setError("Receipt image could not be displayed.")} />}
+    </div>
+  </Modal>;
+}
 export function ReceiptLink({ booking, children }) {
   const [open, setOpen] = useState(false);
   return <>
-    <button className="action" onClick={() => setOpen(true)}>{children}</button>
-    {open && <Modal title="Payment receipt" close={() => setOpen(false)}>
-      <iframe className="receipt-view" title="Original payment receipt" src={"/api/bookings/" + booking.id + "/receipt"} />
-    </Modal>}
+    <button type="button" className="receipt-button" onClick={() => setOpen(true)}>
+      <FileText size={16} aria-hidden="true" />{children}
+    </button>
+    {open && <ReceiptViewer booking={booking} close={() => setOpen(false)} />}
   </>;
 }
 export function Badge({ v }) {

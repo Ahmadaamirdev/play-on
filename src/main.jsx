@@ -5,7 +5,7 @@ import {
   UserRound,
   MapPin,
   Timer,
-  Ticket, ArrowLeft,
+  Ticket, ArrowLeft, ChevronDown,
   Check,
   LogOut,
   CalendarCheck2,
@@ -18,7 +18,7 @@ import {
   api,
   useData,
   time,
-  fmt,
+  fmt, bookingDateLabel,
   amount,
   Modal, ReceiptLink,
   Row,
@@ -31,6 +31,7 @@ import {
 import { bookingTotal, closingTime, openingTime } from "../booking.js";
 import Admin from "./staff";
 import "./style.css";
+import "./booking-receipt.css";
 function App() {
   const [cfg, setCfg] = useState(null),
     [err, setErr] = useState(""),
@@ -407,14 +408,19 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
             </div>
             <label>
               Booking date
-              <input
-                type="date"
-                value={date}
-                min={cfg.today}
-                onChange={(e) => {
-                  if (e.target.value) setSelection({ ...selection, date: e.target.value });
-                }}
-              />
+              <span className="booking-date-field">
+                <span className="booking-date-display" aria-hidden="true">
+                  {bookingDateLabel(date)} <ChevronDown size={16} />
+                </span>
+                <input
+                  type="date"
+                  value={date}
+                  min={cfg.today}
+                  onChange={(e) => {
+                    if (e.target.value) setSelection({ ...selection, date: e.target.value });
+                  }}
+                />
+              </span>
             </label>
             <div className="time-pair">
               <TimeInput
