@@ -33,7 +33,7 @@ const check = (ok, msg) => {
 };
 const active = (b) =>
   ["Confirmed", "VIP", "Pending verification"].includes(b.status) ||
-  (b.status === "Awaiting payment" && b.expires > Date.now());
+  (b.status === "Awaiting payment" && (b.expires == null || b.expires > Date.now()));
 const view = (b) =>
   b.status === "Awaiting payment" && !active(b)
     ? { ...b, status: "Expired" }
@@ -51,10 +51,9 @@ const upload = multer({
 export async function makeApp(db, env = process.env) {
   const zone = env.VENUE_TIMEZONE || "Asia/Karachi",
     currency = env.CURRENCY || "PKR",
-    venue = env.VENUE_NAME || "Play On Sports Club",
-    hold = Number(env.HOLD_SECONDS || 600);
+    venue = env.VENUE_NAME || "Play On Sports Club";
   check(
-    DateTime.now().setZone(zone).isValid && Number.isFinite(hold) && hold > 0,
+    DateTime.now().setZone(zone).isValid,
     "Invalid venue configuration.",
   );
   const now = () => DateTime.now().setZone(zone),
@@ -81,6 +80,13 @@ export async function makeApp(db, env = process.env) {
     receipts = db.collection("receipts"),
     settings = db.collection("settings");
   await ensureScheduleSchema(db);
+  // Keep outstanding legacy holds without reviving slots already released.
+  const cutoff = Date.now();
+  await days.updateMany(
+    { bookings: { $elemMatch: { status: "Awaiting payment", expires: { $gt: cutoff } } } },
+    { $unset: { "bookings.$[held].expires": "" }, $inc: { revision: 1 } },
+    { arrayFilters: [{ "held.status": "Awaiting payment", "held.expires": { $gt: cutoff } }] },
+  );
   await Promise.all([
     users.createIndex({ email: 1 }, { unique: true }),
     sessions.createIndex({ until: 1 }, { expireAfterSeconds: 0 }),
@@ -278,7 +284,6 @@ export async function makeApp(db, env = process.env) {
       currency,
       venue,
       today: today(),
-      hold,
       payment:
         env.PAYMENT_INSTRUCTIONS ||
         "Demo venue only. Upload a sample receipt to try the verification flow.",
@@ -420,9 +425,7 @@ export async function makeApp(db, env = process.env) {
       status: vip ? "VIP" : "Awaiting payment",
       paymentType: vip ? req.body.paymentType : "Transfer",
       created: Date.now(),
-      ...(vip
-        ? { verified: Date.now() }
-        : { expires: Date.now() + hold * 1000 }),
+      ...(vip ? { verified: Date.now() } : {}),
     };
     await change(date, (d) => {
       check(start >= firstStart(date), "Choose a future start time.");
@@ -567,6 +570,7 @@ export async function makeApp(db, env = process.env) {
       { $replaceWith: "$bookings" },
       { $match: { $or: [
         { status: { $in: ["Confirmed", "VIP", "Pending verification"] } },
+        { status: "Awaiting payment", expires: null },
         { status: "Awaiting payment", expires: { $gt: Date.now() } },
       ] } },
       { $group: {
@@ -586,12 +590,12 @@ export async function makeApp(db, env = process.env) {
   });
   app.get("/api/admin/queue", staff, async (req, res) => {
     const ds = await days
-      .find({ "bookings.status": "Pending verification" })
+      .find({ "bookings.status": { $in: ["Pending verification", "Awaiting payment"] } })
       .toArray();
     res.json(
       ds
         .flatMap((d) =>
-          d.bookings.filter((b) => b.status === "Pending verification"),
+          d.bookings.filter((b) => b.status === "Pending verification" || (b.status === "Awaiting payment" && active(b))),
         )
         .sort((a, b) => a.created - b.created),
     );
@@ -606,7 +610,7 @@ export async function makeApp(db, env = process.env) {
     );
     await change(b.date, (d) => {
       const x = d.bookings.find((a) => a.id === b.id);
-      if (x?.status !== "Pending verification")
+      if (x?.status !== "Pending verification" && !(decision === "Reject" && x?.status === "Awaiting payment" && active(x)))
         fail(409, "Payment already reviewed.");
       Object.assign(
         x,

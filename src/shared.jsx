@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { DateTime } from "luxon";
-import { X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { closingTime, time } from "../booking.js";
 export { time };
 export async function api(path, body, method) {
@@ -179,13 +179,22 @@ export function Modal({ title, close, children }) {
     <dialog ref={ref} aria-labelledby={headingId} onCancel={e => { e.preventDefault(); close(); }}>
       <div className="modalhead">
         <h2 id={headingId}>{title}</h2>
-        <button className="icon" aria-label="Close" onClick={close}>
-          <X />
+        <button className="icon" aria-label="Go back" onClick={close}>
+          <ArrowLeft />
         </button>
       </div>
       {children}
     </dialog>
   );
+}
+export function ReceiptLink({ booking, children }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button className="action" onClick={() => setOpen(true)}>{children}</button>
+    {open && <Modal title="Payment receipt" close={() => setOpen(false)}>
+      <iframe className="receipt-view" title="Original payment receipt" src={"/api/bookings/" + booking.id + "/receipt"} />
+    </Modal>}
+  </>;
 }
 export function Badge({ v }) {
   return (

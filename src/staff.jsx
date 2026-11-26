@@ -16,7 +16,7 @@ import {
   time,
   fmt,
   amount,
-  Modal,
+  Modal, ReceiptLink,
   Badge,
   Row,
   Entry,
@@ -60,10 +60,12 @@ export default function Admin({ cfg, reload, staffTools }) {
   const refresh = () => R((n) => n + 1);
   const [queue, queueError] = useData(() => api("/admin/queue"), [rev], 5000);
   const [menuOpen, setMenuOpen] = useState(false);
-  function chooseTab(next) {
+  const previousTabs = useRef([]);
+  function chooseTab(next, remember = true) {
+    if (remember && tab !== next) previousTabs.current.push(tab);
     T(next); M(""); setMenuOpen(false); window.scrollTo(0, 0);
   }
-  const pendingCount = queue?.length ?? 0;
+  const pendingCount = queue?.filter(b => b.status === "Pending verification").length ?? 0;
   useEffect(() => {
     const id = setInterval(refresh, 30000);
     return () => clearInterval(id);
@@ -71,10 +73,12 @@ export default function Admin({ cfg, reload, staffTools }) {
   return (
     <div className="admin-workspace">
       {staffTools && createPortal(
+        <>{previousTabs.current.length > 0 && <button className="ops-bell" aria-label="Go back"
+          onClick={() => chooseTab(previousTabs.current.pop(), false)}><ChevronLeft /></button>}
         <button className="ops-bell" aria-label={`Payment notifications, ${pendingCount} pending`}
           onClick={() => chooseTab("Payments")}>
           <Bell />{pendingCount > 0 && <i aria-hidden="true" />}
-        </button>, staffTools)}
+        </button></>, staffTools)}
       <aside className="ops-sidebar">
         <h1>Venue operations</h1>
         <button className="staff-menu-toggle" aria-controls="staff-navigation" aria-expanded={menuOpen}
@@ -565,14 +569,14 @@ function Payments({ cfg, list, err, refresh, M }) {
     <section className="panel">
       <h2>Payment review queue</h2>
       <p>
-        {err || (!list ? "Loading…" : list.length + " awaiting verification")}
+        {err || (!list ? "Loading…" : list.filter(x => x.status === "Pending verification").length + " awaiting verification")}
       </p>
       {list?.map((x) => (
         <article className="ops-payment" key={x.id}>
           <div><b>{x.name}</b><small>{x.id} · {x.phone}</small></div>
           <div>{cname(cfg, x.court)}<small>{fmt(x.date)} · {time(x.start)} – {time(x.start + x.duration)}</small></div>
           <strong>{amount(x.total, cfg.currency)}</strong>
-          <button onClick={() => { B(x); R(""); E(""); setDecision(null); }}>Review payment</button>
+          <button onClick={() => { B(x); R(""); E(""); setDecision(null); }}>{x.status === "Awaiting payment" ? "Awaiting payment" : "Review payment"}</button>
         </article>
       ))}
       {b && (
@@ -582,18 +586,10 @@ function Payments({ cfg, list, err, refresh, M }) {
             {b.name} · {b.phone}
           </p>
           <Row k="Expected amount">{amount(b.total, cfg.currency)}</Row>
-          <a
-            className="action"
-            href={"/api/bookings/" + b.id + "/receipt"}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open original receipt
-          </a>
-          <iframe
-            title="Uploaded payment receipt"
-            src={"/api/bookings/" + b.id + "/receipt"}
-          />
+          {b.receipt && <>
+            <ReceiptLink booking={b}>Open original receipt</ReceiptLink>
+            <iframe title="Uploaded payment receipt" src={"/api/bookings/" + b.id + "/receipt"} />
+          </>}
           <label>
             Reason for rejection
             <textarea
@@ -617,7 +613,7 @@ function Payments({ cfg, list, err, refresh, M }) {
             </button>
             <button
               className="primary compact"
-              disabled={busy}
+              disabled={busy || b.status !== "Pending verification"}
               onClick={() => setDecision("Approve")}
             >
               Approve

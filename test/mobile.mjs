@@ -80,7 +80,7 @@ try {
     const confirmed = subset.filter(b => b.status === "Confirmed" && !b.vip).length;
     const vip = subset.filter(b => b.status === "VIP" || (b.status === "Confirmed" && b.vip)).length;
     const pending = subset.filter(b => b.status === "Pending verification" ||
-      (b.status === "Awaiting payment" && b.expires > Date.now())).length;
+      (b.status === "Awaiting payment" && (b.expires == null || b.expires > Date.now()))).length;
     await expect(counts).toHaveText([confirmed + vip + pending, confirmed, vip, pending].map(String));
   }
   await admin.getByRole("button", { name: "Next day" }).click();
@@ -185,7 +185,7 @@ try {
   await player
     .getByRole("button", { name: "Hold court & view payment details" })
     .click();
-  await expect(player.getByText(/Court held ·/)).toBeVisible();
+  await expect(player.getByRole("heading", {name:"Submit payment receipt"})).toBeVisible();
   await width(player);
   await player
     .locator("input[type=file]")
@@ -202,6 +202,11 @@ try {
     player.getByText("Pending verification", { exact: true }),
   ).toBeVisible();
   await expect(player).toHaveURL(url + "/my-bookings");
+  await player.getByRole("button", {name:"View receipt"}).click();
+  const viewer = player.getByRole("dialog", {name:"Payment receipt"});
+  await expect(viewer.locator("iframe")).toBeVisible();
+  await viewer.getByRole("button", {name:"Go back"}).click();
+  await expect(player.getByRole("heading", {name:"My bookings"})).toBeVisible();
   const pendingTab = admin.getByRole("button", { name: "Payments, 1 awaiting verification" });
   await expect(pendingTab).toContainText("1", { timeout: 8000 });
   const tabBox = await pendingTab.boundingBox();
@@ -213,16 +218,16 @@ try {
   await expect(player.getByLabel("Booking date")).toHaveValue(date);
   await expect(player.getByRole("listitem").filter({ hasText: "6:05 PM – 7:35 PM" })).toBeVisible();
   await player.getByLabel("Start time", { exact: true }).fill("7:34");
-  await player.getByLabel("End time", { exact: true }).fill("8:05");
+  await player.getByLabel("End time", { exact: true }).fill("8:35");
   await player.getByRole("combobox", { name: "Start time AM/PM" }).selectOption("PM");
   await player.getByRole("combobox", { name: "End time AM/PM" }).selectOption("PM");
   await expect(player.getByRole("alert")).toHaveText(/overlaps an existing booking/);
   await player.getByLabel("Start time", { exact: true }).fill("7:35");
   await expect(player.getByRole("button", { name: "Continue to payment" })).toBeEnabled();
-  await player.getByLabel("Start time", { exact: true }).fill("11:59");
+  await player.getByLabel("Start time", { exact: true }).fill("11:00");
   await player.getByLabel("End time", { exact: true }).fill("12:00");
   await player.getByRole("combobox", { name: "End time AM/PM" }).selectOption("AM");
-  await expect(player.getByText("11:59 PM – 12:00 AM", { exact: true })).toBeVisible();
+  await expect(player.getByText("11:00 PM – 12:00 AM", { exact: true })).toBeVisible();
   await expect(player.getByRole("button", { name: "Continue to payment" })).toBeEnabled();
   await player.goto(url + "/my-bookings");
   await admin.reload();
@@ -243,7 +248,7 @@ try {
   await admin.getByLabel("Reason for rejection").fill("Receipt amount is unreadable");
   await admin.getByRole("button",{name:"Reject",exact:true}).click();
   await expect(admin.getByRole("button",{name:"Confirm rejection"})).toBeVisible();
-  await admin.getByRole("button",{name:"Go back"}).click();
+  await admin.getByRole("group",{name:"Confirm payment decision"}).getByRole("button",{name:"Go back"}).click();
   await admin.getByRole("button", { name: "Approve", exact: true }).click();
   await admin.getByRole("button", {name:"Confirm approval"}).click();
   await expect(admin.getByText("0 awaiting verification")).toBeVisible();
@@ -289,7 +294,7 @@ try {
   assert.ok((await readFile(await csv.path(),"utf8")).includes(id));
   await admin.getByRole("button",{name:"Booking details for " + id}).click();
   await expect(admin.getByRole("dialog")).toContainText("Verified");
-  await admin.getByRole("button",{name:"Close",exact:true}).click();
+  await admin.getByRole("dialog").getByRole("button",{name:"Go back",exact:true}).click();
   await admin.getByRole("button", { name: "Bookings revenue", exact: true }).click();
   const bookedSlots = admin.getByRole("region", { name: "Booked slots" });
   await expect(bookedSlots.getByText(new RegExp(id))).toBeVisible();
@@ -301,21 +306,21 @@ try {
   const profile = admin.getByRole("dialog");
   await expect(profile.getByRole("heading", { name: "Booking history" })).toBeVisible();
   await expect(profile.getByText(new RegExp(id))).toBeVisible();
-  await profile.getByRole("button", { name: "Close" }).click();
+  await profile.getByRole("button", { name: "Go back" }).click();
 
   await staffSection("Schedule");
   await admin.getByLabel("Date", { exact: true }).fill(date);
   await admin.getByText("Filters & court actions", { exact: true }).click();
   await admin.getByRole("button", { name: "Reserve for VIP" }).click();
   await admin.getByLabel("Start time", { exact: true }).fill("8:10");
-  await admin.getByLabel("End time", { exact: true }).fill("9:05");
+  await admin.getByLabel("End time", { exact: true }).fill("9:10");
   await admin.getByRole("combobox", { name: "Start time AM/PM" }).selectOption("PM");
   await admin.getByRole("combobox", { name: "End time AM/PM" }).selectOption("PM");
   await admin.getByLabel("Guest full name").fill("VIP Guest");
   await admin.getByLabel("Guest mobile").fill("03001234567");
   await admin.locator('select[name="paymentType"]').selectOption("Complimentary");
   await admin.getByRole("button", { name: "Reserve court" }).click();
-  await expect(admin.getByText("8:10 PM – 9:05 PM", { exact: true })).toBeVisible();
+  await expect(admin.getByText("8:10 PM – 9:10 PM", { exact: true })).toBeVisible();
   await admin.getByRole("button",{name:"Close courts"}).click();
   await admin.getByLabel("Closure applies to").selectOption("tennis-outdoor");
   await admin.getByRole("button",{name:"Apply day closure"}).click();

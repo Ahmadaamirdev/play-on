@@ -5,7 +5,7 @@ import {
   UserRound,
   MapPin,
   Timer,
-  Ticket,
+  Ticket, ArrowLeft,
   Check,
   LogOut,
   CalendarCheck2,
@@ -20,7 +20,7 @@ import {
   time,
   fmt,
   amount,
-  Modal,
+  Modal, ReceiptLink,
   Row,
   Entry,
   SportIcon,
@@ -41,7 +41,7 @@ function App() {
     [selection, setSelection] = useState({ sport: "Cricket", type: "Indoor" });
   const go = (next) => {
     if (window.location.pathname !== next)
-      window.history.pushState(null, "", next);
+      window.history.pushState({ playOnNavigation: true }, "", next);
     setPath(next);
     window.scrollTo(0, 0);
   };
@@ -86,6 +86,10 @@ function App() {
     <>
       <header className={staffPage ? "ops-header" : "player-header"}>
         <div className="headinner">
+          {!staffPage && (bookingsPage || window.history.state?.playOnNavigation) && <button className="icon" aria-label="Go back" onClick={() =>
+            window.history.state?.playOnNavigation ? window.history.back() : go("/")}>
+            <ArrowLeft />
+          </button>}
           <a
             href={staffPage ? "/admin" : "/"}
             onClick={(e) => {
@@ -492,10 +496,7 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
               {ready ? "Continue to payment" : "Enter booking times"}
               <CalendarCheck2 />
             </button>
-            <p className="hint">
-              <Timer /> Your court is held for {cfg.hold / 60} minutes at
-              checkout.
-            </p>
+
           </div>
         </aside>
       </div>
@@ -546,25 +547,10 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
   );
 }
 function Checkout({ b, cfg, close, done }) {
-  const [now, N] = useState(Date.now()),
-    [err, E] = useState(""),
+  const [err, E] = useState(""),
     [busy, B] = useState(false);
-  useEffect(() => {
-    const i = setInterval(() => N(Date.now()), 300);
-    return () => clearInterval(i);
-  }, []);
-  const sec = Math.max(0, Math.ceil((b.expires - now) / 1000));
   return (
     <Modal title="Submit payment receipt" close={close}>
-      <div className="count">
-        <Timer />
-        {sec
-          ? "Court held · " +
-            Math.floor(sec / 60) +
-            ":" +
-            String(sec % 60).padStart(2, "0")
-          : "Hold expired"}
-      </div>
       <Row k="Amount due">{amount(b.total, cfg.currency)}</Row>
       <p>{cfg.payment}</p>
       <form
@@ -592,7 +578,7 @@ function Checkout({ b, cfg, close, done }) {
           />
         </label>
         <p role="alert">{err}</p>
-        <button className="primary" disabled={busy || !sec}>
+        <button className="primary" disabled={busy}>
           {busy ? "Uploading receipt…" : "Submit for verification"}
         </button>
       </form>
@@ -637,14 +623,7 @@ function Mine({ cfg, sign }) {
                 <button onClick={() => B(x)}>Continue payment</button>
               )}
               {x.receipt && (
-                <a
-                  className="action"
-                  target="_blank"
-                  rel="noreferrer"
-                  href={"/api/bookings/" + x.id + "/receipt"}
-                >
-                  View receipt
-                </a>
+                <ReceiptLink booking={x}>View receipt</ReceiptLink>
               )}
               {x.reason && <p>Reason · {x.reason}</p>}
             </Entry>

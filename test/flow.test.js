@@ -27,7 +27,7 @@ test("venue workflow with real MongoDB", async (t) => {
     await client.close();
     await instance?.stop();
   });
-  const app = await makeApp(db, { DEMO_SEED: "true", HOLD_SECONDS: "5" });
+  const app = await makeApp(db, { DEMO_SEED: "true" });
   server = app.listen(0, "127.0.0.1");
   await new Promise((r) => server.once("listening", r));
   const url = "http://127.0.0.1:" + server.address().port + "/api";
@@ -111,7 +111,7 @@ test("venue workflow with real MongoDB", async (t) => {
     );
     return f;
   };
-  let booking, vip;
+  let booking, vip, independentBooking;
   await t.test(
     "quote, concurrent overlapping holds and independent court",
     async () => {
@@ -124,7 +124,7 @@ test("venue workflow with real MongoDB", async (t) => {
       assert.deepEqual([a.status, b.status].sort(), [201, 409]);
       assert.equal(c.status, 201);
       booking = await (a.ok ? a : b).json();
-      const independentBooking = await c.json();
+      independentBooking = await c.json();
       assert.match(booking.id, /^PO-[0-9]{6}$/);
       assert.match(independentBooking.id, /^PO-[0-9]{6}$/);
       assert.notEqual(booking.id, independentBooking.id);
@@ -143,7 +143,7 @@ test("venue workflow with real MongoDB", async (t) => {
     },
   );
   await t.test(
-    "receipt ownership and pending hold persists after initial expiry",
+    "receipt ownership and pending hold persists",
     async () => {
       const owner = booking.token,
         foreign = owner === player ? other : player;
@@ -188,7 +188,6 @@ test("venue workflow with real MongoDB", async (t) => {
         ).status,
         409,
       );
-      await new Promise((r) => setTimeout(r, 5200));
       assert.equal(await free(630), false);
       assert.equal(
         (await json("/mine", undefined, owner)).find((b) => b.id === booking.id)
@@ -223,7 +222,7 @@ test("venue workflow with real MongoDB", async (t) => {
       const availability = await json("/availability?" + new URLSearchParams({ court, date }));
       assert.equal(availability.rate, 3000);
       const queue = await json("/admin/queue", undefined, admin);
-      assert.equal(queue[0].total, 3000);
+      assert.equal(queue.find(b => b.id === booking.id).total, 3000);
       await json("/admin/review/" + booking.id, { decision: "Approve" }, admin);
       const playerBookings = await json("/mine", undefined, booking.token);
       const staffSchedule = await json("/admin/day?date=" + date, undefined, admin);
@@ -271,19 +270,17 @@ test("venue workflow with real MongoDB", async (t) => {
       );
     },
   );
-  await t.test("expiry, rejection and reopened availability", async () => {
+  await t.test("persistent hold, rejection and reopened availability", async () => {
     const x = await json(
       "/hold",
       { ...base, start: 900, quotedTotal: 4500 },
       player,
     );
-    await new Promise((r) => setTimeout(r, 5200));
+    assert.equal(x.expires, undefined);
+    assert.equal(await free(900), false);
+    assert.equal((await request("/admin/review/" + x.id, { decision: "Approve" }, admin)).status, 409);
+    await json("/admin/review/" + x.id, { decision: "Reject", reason: "No payment" }, admin);
     assert.ok(await free(900));
-    assert.equal(
-      (await request("/bookings/" + x.id + "/receipt", receipt(), player))
-        .status,
-      409,
-    );
     const y = await json(
       "/hold",
       { ...base, start: 900, quotedTotal: 4500 },
@@ -336,7 +333,8 @@ test("venue workflow with real MongoDB", async (t) => {
         admin,
       );
       assert.equal(blocked.status, 409);
-      assert.equal((await blocked.json()).affected.length, 3);
+      assert.equal((await blocked.json()).affected.length, 4);
+      await json("/admin/review/" + independentBooking.id, { decision: "Reject", reason: "Unpaid" }, admin);
       await json(
         "/admin/move/" + vip.id,
         { court: "cricket-outdoor", start: 900 },

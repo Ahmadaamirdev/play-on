@@ -47,7 +47,7 @@ The demo has one indoor and one outdoor court per sport. Starting rates are PKR 
 ## Player and staff walkthrough
 
 1. Choose a sport, court setting and date. Check the booked ranges, then enter your start and end times. The total uses the hourly rate and entered range. A 90-minute cricket booking initially quotes PKR 3,000.
-2. Continue to payment, enter the registered player's name and 11-digit mobile number, and start the hold. Upload a JPG, PNG or PDF under the 5 MiB limit. The player can resume an unexpired checkout from `/my-bookings`.
+2. Continue to payment, enter the registered player's name and 11-digit mobile number, and start the hold. Upload a JPG, PNG or PDF under the 5 MiB limit. The player can resume an awaiting-payment checkout from `/my-bookings`.
 3. Open Payments as staff. Review the receipt, amount and booking together. Approval unlocks the PDF invoice. Rejection requires a reason and immediately frees the court.
 4. Open My bookings as the player to download the invoice. Use its booking ID in the staff Check-in tab, compare the court and time, confirm the registered mobile and mark the visit checked in. A second attempt shows the previous check-in time.
 5. Use Schedule to reserve a paid or complimentary VIP booking or close a court, sport or day. A conflicting closure leaves the entire schedule intact. Staff can move an affected reservation to another available court or date and retry the closure. The booking ID, quoted price and verification history stay with the reservation.
@@ -57,7 +57,7 @@ The demo has one indoor and one outdoor court per sport. Starting rates are PKR 
 
 - The server computes and snapshots hourly rate and total. It refuses a player hold when the submitted quote no longer matches the current rate.
 - Each venue date has a MongoDB schedule document with a revision. Holds, reviews, same-day moves and closures compare and update the revision atomically. A retry reads the winning schedule and rechecks the entire interval. Adjacent bookings can meet at the same minute. Simultaneous requests for independent courts can both succeed.
-- A hold's server timestamp determines availability. An abandoned checkout becomes available immediately upon expiry, without a cleanup timer. A successfully uploaded receipt holds the slot until staff review it.
+- Checkout reserves the slot until staff reject the reservation. Approval keeps it booked. Staff can also reject an unpaid reservation.
 - A separate private collection stores receipt bytes. The API checks the role and booking owner before serving receipts or invoices. Passwords use salted scrypt hashes and session cookies contain opaque random tokens.
 - Revenue is the sum of unique approved booking records and paid VIPs in the selected date range. Finance defaults to booking date and also supports payment verification date. Demo records are included in finance like other bookings for testing. Check-in, invoice downloads, rate edits and rescheduling do not record additional revenue. Date ranges include the full end date.
 
@@ -69,7 +69,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The integration suite starts a real isolated MongoDB replica set. It exercises concurrent overlap, independent courts, hold expiry, private receipts and invoices, snapshot pricing, rejection and release, repeat reviews and check-ins, cross-day moves, closures and finance totals. To use an existing test replica set, supply TEST_MONGO_URI. The API suite creates and removes its own uniquely named test database.
+The integration suite starts a real isolated MongoDB replica set. It exercises concurrent overlap, independent courts, persistent holds, private receipts and invoices, snapshot pricing, rejection and release, repeat reviews and check-ins, cross-day moves, closures and finance totals. To use an existing test replica set, supply TEST_MONGO_URI. The API suite creates and removes its own uniquely named test database.
 
 The browser test builds the frontend and drives a 360-pixel player screen and a desktop staff screen through booking, upload, approval, PDF download, check-in and revenue drill-down. Both suites accept MONGOMS_SYSTEM_BINARY. The browser test also accepts CHROMIUM_PATH for an installed Chromium executable. On Linux, Playwright may require browser system dependencies.
 
@@ -101,7 +101,6 @@ In your Vercel Project Settings > **Environment Variables**, add:
 - `VENUE_NAME`: Venue name (e.g., `Play On Sports Club`)
 - `VENUE_TIMEZONE`: Timezone (e.g., `Asia/Karachi`)
 - `CURRENCY`: Currency code (e.g., `PKR`)
-- `HOLD_SECONDS`: Reservation hold duration in seconds (e.g., `600`)
 - `PAYMENT_INSTRUCTIONS`: Instructions displayed to players during checkout
 - `ADMIN_EMAIL`: Staff email for initial login bootstrap
 - `ADMIN_PASSWORD`: Strong password for the staff account
