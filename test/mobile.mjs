@@ -90,12 +90,12 @@ try {
   const courtCards = admin.locator(".court-grid .daycourt");
   await expect(courtCards).toHaveCount(6);
   const courtFiles = {
-    "cricket-indoor": "Premium Indoor Cricket Training Facility.png",
-    "cricket-outdoor": "Sunny Outdoor Cricket Field with Yellow Stumps.png",
-    "tennis-indoor": "Modern Indoor Tennis Court.png",
-    "tennis-outdoor": "Sunny Green Tennis Court.png",
-    "padel-indoor": "Modern Indoor padel Court.png",
-    "padel-outdoor": "Sunny Green padel Court .png",
+    "cricket-indoor": "Premium Indoor Cricket Training Facility.webp",
+    "cricket-outdoor": "Sunny Outdoor Cricket Field with Yellow Stumps.webp",
+    "tennis-indoor": "Modern Indoor Tennis Court.webp",
+    "tennis-outdoor": "Sunny Green Tennis Court.webp",
+    "padel-indoor": "Modern Indoor padel Court.webp",
+    "padel-outdoor": "Sunny Green padel Court.webp",
   };
   for (const [courtId, file] of Object.entries(courtFiles)) {
     const image = await admin.locator(`[data-court="${courtId}"] h3`).evaluate(header =>

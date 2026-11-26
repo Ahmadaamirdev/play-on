@@ -93,7 +93,7 @@ header.ops-header {
 main.ops-main { background: #142d27; }
 .admin-workspace { grid-template-columns: clamp(195px,17vw,250px) minmax(0,1fr); }
 .ops-sidebar {
-  background: url("./assets/Neon Tennis Ball on Emerald Turf.png") center bottom / cover no-repeat;
+  background: url("./assets/Neon Tennis Ball on Emerald Turf.webp") center bottom / cover no-repeat;
 }
 .ops-sidebar > small { display:flex; align-items:center; gap:8px; margin:auto -14px -28px; padding:12px 20px; background:#10291fd9; color:white; }
 .admin-workspace .admintabs button { border-radius:10px; }
@@ -164,12 +164,12 @@ main.ops-main { background: #142d27; }
   color:white; margin:0; padding:12px 18px; background:
   linear-gradient(90deg,#193e30 10%,#18392def 48%,#17372b40), var(--court-image) center / cover;
 }
-[data-court="cricket-indoor"] { --court-image:url("./assets/Premium Indoor Cricket Training Facility.png"); }
-[data-court="cricket-outdoor"] { --court-image:url("./assets/Sunny Outdoor Cricket Field with Yellow Stumps.png"); }
-[data-court="tennis-indoor"] { --court-image:url("./assets/Modern Indoor Tennis Court.png"); }
-[data-court="tennis-outdoor"] { --court-image:url("./assets/Sunny Green Tennis Court.png"); }
-[data-court="padel-indoor"] { --court-image:url("./assets/Modern Indoor padel Court.png"); }
-[data-court="padel-outdoor"] { --court-image:url("./assets/Sunny Green padel Court .png"); }
+[data-court="cricket-indoor"] { --court-image:url("./assets/Premium Indoor Cricket Training Facility.webp"); }
+[data-court="cricket-outdoor"] { --court-image:url("./assets/Sunny Outdoor Cricket Field with Yellow Stumps.webp"); }
+[data-court="tennis-indoor"] { --court-image:url("./assets/Modern Indoor Tennis Court.webp"); }
+[data-court="tennis-outdoor"] { --court-image:url("./assets/Sunny Green Tennis Court.webp"); }
+[data-court="padel-indoor"] { --court-image:url("./assets/Modern Indoor padel Court.webp"); }
+[data-court="padel-outdoor"] { --court-image:url("./assets/Sunny Green padel Court.webp"); }
 .daycourt h3 .sporticon { color:#b5e861; }
 .admin-workspace .daycourt .scheduleline { display:flex; flex-wrap:wrap; font-size:.84rem; }
 .slot-time { display:inline-flex; align-items:center; gap:7px; }

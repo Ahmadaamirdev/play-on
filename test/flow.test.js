@@ -94,6 +94,14 @@ test("venue workflow with real MongoDB", async (t) => {
     json("/slots?" + new URLSearchParams({ date, court, duration: 90 }));
   const free = async (start) =>
     (await slots()).slots.find((s) => s.start === start).open;
+  await t.test("next available slot skips closed days and handles a missing schedule", async () => {
+    const start = now.plus({ days: 90 });
+    for (let offset = 0; offset < 2; offset++) {
+      await json("/admin/closure", { date: start.plus({ days: offset }).toISODate(), scope: court }, admin);
+    }
+    const result = await json("/slots?" + new URLSearchParams({ date: start.toISODate(), court, duration: 60 }));
+    assert.deepEqual(result.next, { date: start.plus({ days: 2 }).toISODate(), start: 360 });
+  });
   const receipt = () => {
     const f = new FormData();
     f.set(

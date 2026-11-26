@@ -29,10 +29,11 @@ import {
   TimeInput,
 } from "./shared";
 import { bookingTotal, closingTime, openingTime } from "../booking.js";
-import Admin from "./staff";
+import "./admin.css";
 import "./style.css";
 import "./booking-receipt.css";
 import { compressReceipt } from "./receipt-upload";
+const Admin = React.lazy(() => import("./staff"));
 function App() {
   const [cfg, setCfg] = useState(null),
     [err, setErr] = useState(""),
@@ -136,7 +137,7 @@ function App() {
       <main className={staffPage ? "ops-main" : bookingsPage ? undefined : "player-home"}>
         {staffPage ? (
           admin ? (
-            <Admin cfg={cfg} reload={load} staffTools={staffTools} />
+            <React.Suspense fallback={null}><Admin cfg={cfg} reload={load} staffTools={staffTools} /></React.Suspense>
           ) : (
             <section className="panel staff-login">
               <h1>Staff sign in</h1>

@@ -798,7 +798,7 @@ iframe {
 .player-header nav .navactive { background:#c7f66a; color:#193a23; }
 .player-header .userbtn svg { color:#214d36; }
 main.player-home { width:100%; padding:0 0 22px; background:linear-gradient(150deg,#fafcfb,#f1f6f2); }
-.player-home .hero { border:0; border-radius:0; min-height:clamp(225px,20vw,310px); padding:26px max(5%,calc((100% - 1180px)/2)); background:#103528 url("./assets/Home_Herosection-BG.png") center / cover no-repeat; }
+.player-home .hero { border:0; border-radius:0; min-height:clamp(225px,20vw,310px); padding:26px max(5%,calc((100% - 1180px)/2)); background:#103528 url("./assets/Home_Herosection-BG.webp") center / cover no-repeat; }
 .player-home .hero h1 { font-size:clamp(36px,4.1vw,65px); line-height:.99; letter-spacing:-.055em; }
 .player-home .hero h1 span { color:#c1ef56; }
 .player-home .hero p { font-size:clamp(11px,1vw,14px); margin-top:14px; }

@@ -25,7 +25,7 @@ import {
   PhoneInput,
   TimeInput,
 } from "./shared";
-import "./admin.css";
+
 import { closingTime, openingTime } from "../booking.js";
 const sports = ["Cricket", "Tennis", "Padel"],
   tabs = [
@@ -154,8 +154,8 @@ function Schedule({ cfg, date, D, rev, refresh, M }) {
 
   // For Day view fetch a single day; for Month/Year fetch the range
   const [d, e] = useData(
-    () => api("/admin/day?date=" + date),
-    [date, rev], 5000,
+    () => viewMode === "Day" ? api("/admin/day?date=" + date) : Promise.resolve(null),
+    [date, rev, viewMode], viewMode === "Day" ? 5000 : 0,
   );
 
   // Keep the last-loaded day data so the grid never disappears while navigating

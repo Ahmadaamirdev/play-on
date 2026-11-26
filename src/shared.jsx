@@ -153,13 +153,18 @@ export function useData(fn, deps, pollInterval) {
       }
     }
     load();
-    const timer = pollInterval && window.setInterval(load, pollInterval);
-    if (pollInterval) window.addEventListener("focus", load);
+    const refreshVisible = () => { if (!document.hidden) load(); };
+    const timer = pollInterval && window.setInterval(refreshVisible, pollInterval);
+    if (pollInterval) {
+      document.addEventListener("visibilitychange", refreshVisible);
+      window.addEventListener("focus", refreshVisible);
+    }
     return () => {
       live = false;
       if (pollInterval) {
         window.clearInterval(timer);
-        window.removeEventListener("focus", load);
+        document.removeEventListener("visibilitychange", refreshVisible);
+        window.removeEventListener("focus", refreshVisible);
       }
     };
   }, deps);

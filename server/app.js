@@ -1,7 +1,6 @@
 import express from "express";
 import { ensureScheduleSchema } from "./schedule-schema.js";
 import multer from "multer";
-import PDFDocument from "pdfkit";
 import { DateTime } from "luxon";
 import { ObjectId } from "mongodb";
 import {
@@ -82,22 +81,21 @@ export async function makeApp(db, env = process.env) {
   await ensureScheduleSchema(db);
   // Keep outstanding legacy holds without reviving slots already released.
   const cutoff = Date.now();
-  await days.updateMany(
-    { bookings: { $elemMatch: { status: "Awaiting payment", expires: { $gt: cutoff } } } },
-    { $unset: { "bookings.$[held].expires": "" }, $inc: { revision: 1 } },
-    { arrayFilters: [{ "held.status": "Awaiting payment", "held.expires": { $gt: cutoff } }] },
-  );
   await Promise.all([
+    days.updateMany(
+      { bookings: { $elemMatch: { status: "Awaiting payment", expires: { $gt: cutoff } } } },
+      { $unset: { "bookings.$[held].expires": "" }, $inc: { revision: 1 } },
+      { arrayFilters: [{ "held.status": "Awaiting payment", "held.expires": { $gt: cutoff } }] },
+    ),
     users.createIndex({ email: 1 }, { unique: true }),
     sessions.createIndex({ until: 1 }, { expireAfterSeconds: 0 }),
-    days.createIndex({ "bookings.id": 1 }),
-    days.createIndex({ "bookings.owner": 1 }),
+    days.createIndexes([{ key: { "bookings.id": 1 } }, { key: { "bookings.owner": 1 } }]),
+    settings.updateOne(
+      { _id: "rates" },
+      { $setOnInsert: { Cricket: 2000, Tennis: 1600, Padel: 3000 } },
+      { upsert: true },
+    ),
   ]);
-  await settings.updateOne(
-    { _id: "rates" },
-    { $setOnInsert: { Cricket: 2000, Tennis: 1600, Padel: 3000 } },
-    { upsert: true },
-  );
   async function account(email, password, name, role) {
     const salt = randomBytes(16).toString("hex"),
       hash = (await derive(password, salt, 64)).toString("hex");
@@ -228,6 +226,8 @@ export async function makeApp(db, env = process.env) {
       if (originHost !== host && originHost !== forwardedHost)
         fail(403, "Cross-origin request denied.");
     }
+    // Both reads expose the same public court data for every visitor.
+    if (req.method === "GET" && ["/availability", "/slots"].includes(req.path)) return next();
     const token = (req.headers.cookie || "").match(
       /(?:^|;\s*)playon=([a-f0-9]{64})(?:;|$)/,
     )?.[1];
@@ -356,7 +356,8 @@ export async function makeApp(db, env = process.env) {
       c = courtBy(court),
       duration = Number(req.query.duration);
     check([60, 90, 120].includes(duration), "Invalid duration.");
-    const rate = (await rates())[c.id];
+    const [hourlyRates, schedule] = await Promise.all([rates(), readDay(date)]);
+    const rate = hourlyRates[c.id];
     const list = (d) => {
       const earliest = firstStart(d._id);
       return Array.from(
@@ -367,14 +368,19 @@ export async function makeApp(db, env = process.env) {
         open: start >= earliest && available(d, court, start, duration),
       }));
     };
-    const slots = list(await readDay(date));
+    const slots = list(schedule);
     let next = null;
     if (!slots.some((s) => s.open)) {
-      for (let i = 1; i <= 30; i++) {
-        const nd = DateTime.fromISO(date, { zone })
-            .plus({ days: i })
-            .toISODate(),
-          s = list(await readDay(nd)).find((s) => s.open);
+      const anchor = DateTime.fromISO(date, { zone });
+      const dates = Array.from({ length: 30 }, (_, i) => anchor.plus({ days: i + 1 }).toISODate());
+      const upcoming = await days.find({ _id: { $gte: dates[0], $lte: dates[29] } }, {
+        projection: { closed: 1, bookings: { $filter: { input: "$bookings", as: "b", cond: { $eq: ["$$b.court", court] } } } },
+      }).toArray();
+      const byDate = new Map(upcoming.map(d => [d._id, d]));
+      for (const nd of dates) {
+        const candidate = byDate.get(nd) || empty(nd);
+        if (candidate.closed.includes(court)) continue;
+        const s = list(candidate).find(slot => slot.open);
         if (s) {
           next = { date: nd, start: s.start };
           break;
@@ -460,8 +466,10 @@ export async function makeApp(db, env = process.env) {
       fail(403, "Access denied.");
   };
   async function bookingHistory(owner) {
-    const ds = await days.find({ "bookings.owner": owner }).toArray();
-    return ds.flatMap((d) => d.bookings.filter((b) => b.owner === owner).map(view))
+    const ds = await days.find({ "bookings.owner": owner }, {
+      projection: { _id: 0, bookings: { $filter: { input: "$bookings", as: "b", cond: { $eq: ["$$b.owner", { $literal: owner }] } } } },
+    }).toArray();
+    return ds.flatMap((d) => d.bookings.map(view))
       .sort((a, b) => b.created - a.created);
   }
   app.get("/api/mine", auth, async (req, res) => res.json(await bookingHistory(req.user.id)));
@@ -529,6 +537,7 @@ export async function makeApp(db, env = process.env) {
     owned(req, b);
     if (b.status !== "Confirmed")
       fail(409, "Invoice becomes available after approval.");
+    const { default: PDFDocument } = await import("pdfkit");
     const c = courtBy(b.court),
       pdf = new PDFDocument({ size: "A5", margin: 32 });
     res.type("application/pdf").attachment(b.id + ".pdf");
@@ -753,8 +762,11 @@ export async function makeApp(db, env = process.env) {
       start: { $lt: end },
       $expr: { $gt: [{ $add: ["$start", "$duration"] }, start] },
     };
-    const payments = await days
+    const paymentsQuery = days
       .aggregate([
+        { $match: basis === "booking"
+          ? { _id: { $gte: from, $lte: to } }
+          : { bookings: { $elemMatch: { verified: { $gte: lo, $lt: hi } } } } },
         { $unwind: "$bookings" },
         { $replaceWith: "$bookings" },
         {
@@ -769,13 +781,15 @@ export async function makeApp(db, env = process.env) {
         { $sort: { verified: -1 } },
       ])
       .toArray();
-    const slots = req.query.slots === "true" ? (await days.aggregate([
+    const slotsQuery = req.query.slots === "true" ? days.aggregate([
       { $match: { _id: { $gte: from, $lte: to } } },
       { $unwind: "$bookings" },
       { $replaceWith: "$bookings" },
       { $match: scope },
       { $sort: { date: 1, start: 1, court: 1 } },
-    ]).toArray()).filter(active) : [];
+    ]).toArray() : [];
+    const [payments, slotRows] = await Promise.all([paymentsQuery, slotsQuery]);
+    const slots = slotRows.filter(active);
     const sum = (records) =>
       records.reduce((cents, b) => cents + Math.round(b.total * 100), 0) / 100;
     const paid = payments.filter((b) => b.paymentType !== "Complimentary"),
