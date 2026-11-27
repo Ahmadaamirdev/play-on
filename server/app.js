@@ -1,5 +1,6 @@
 import express from "express";
 import { ensureScheduleSchema } from "./schedule-schema.js";
+import { ensureBookingIds } from "./booking-ids.js";
 import multer from "multer";
 import { DateTime } from "luxon";
 import { ObjectId } from "mongodb";
@@ -80,6 +81,7 @@ export async function makeApp(db, env = process.env) {
     settings = db.collection("settings"),
     rateLimits = db.collection("rateLimits");
   await ensureScheduleSchema(db);
+  await ensureBookingIds(db);
   // Keep outstanding legacy holds without reviving slots already released.
   const cutoff = Date.now();
   await Promise.all([
@@ -91,7 +93,7 @@ export async function makeApp(db, env = process.env) {
     users.createIndex({ email: 1 }, { unique: true }),
     sessions.createIndex({ until: 1 }, { expireAfterSeconds: 0 }),
     rateLimits.createIndex({ until: 1 }, { expireAfterSeconds: 0 }),
-    days.createIndexes([{ key: { "bookings.id": 1 } }, { key: { "bookings.owner": 1 } }]),
+    days.createIndex({ "bookings.owner": 1 }),
     settings.updateOne(
       { _id: "rates" },
       { $setOnInsert: { Cricket: 2000, Tennis: 1600, Padel: 3000 } },

@@ -27,6 +27,17 @@ test("venue workflow with real MongoDB", async (t) => {
     await client.close();
     await instance?.stop();
   });
+  const legacy = {
+    id: "PO-000042", owner: null, name: "Legacy paid", phone: "03001234567",
+    court: "cricket-indoor", sport: "Cricket", start: 360, duration: 60,
+    rate: 2000, total: 2000, created: 1, verified: 1,
+    status: "Confirmed", paymentType: "Transfer",
+  };
+  await db.collection("days").insertMany([
+    { _id: "2000-01-01", revision: 0, closed: [], bookings: [{ ...legacy, date: "2000-01-01" }] },
+    { _id: "2000-01-02", revision: 0, closed: [], bookings: [{ ...legacy, name: "Legacy pending", date: "2000-01-02", status: "Pending verification" }] },
+  ]);
+  await db.collection("settings").insertOne({ _id: "bookingSequence", sequence: 0 });
   const app = await makeApp(db, { DEMO_SEED: "true" });
   server = app.listen(0, "127.0.0.1");
   await new Promise((r) => server.once("listening", r));
@@ -74,6 +85,17 @@ test("venue workflow with real MongoDB", async (t) => {
     date = now.plus({ days: 3 }).toISODate(),
     today = now.toISODate(),
     court = "cricket-indoor";
+  await t.test("legacy duplicate IDs are repaired and the correct payment can be approved", async () => {
+    const [paid, pending] = await Promise.all(["2000-01-01", "2000-01-02"].map(_id => db.collection("days").findOne({ _id })));
+    assert.equal(paid.bookings[0].id, "PO-000042");
+    assert.notEqual(pending.bookings[0].id, paid.bookings[0].id);
+    assert.ok(Number(pending.bookings[0].id.slice(3)) > 42);
+    await json("/admin/review/" + pending.bookings[0].id, { decision: "Approve" }, admin);
+    const updated = await db.collection("days").findOne({ _id: pending._id });
+    assert.equal(updated.bookings[0].status, "Confirmed");
+    assert.equal((await db.collection("days").findOne({ _id: paid._id })).bookings[0].name, "Legacy paid");
+    await db.collection("days").deleteMany({ _id: { $in: [paid._id, pending._id] } });
+  });
   const base = {
     court,
     date,
