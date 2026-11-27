@@ -10,9 +10,9 @@ export const time = (minutes) => {
   return `${hour % 12 || 12}:${minute} ${hour < 12 ? "AM" : "PM"}`;
 };
 
-export function courtTimeline(booked, firstStart) {
+export function courtTimeline(booked) {
   const slots = [];
-  let cursor = Math.max(openingTime, firstStart);
+  let cursor = openingTime;
   for (const slot of booked) {
     if (cursor < slot.start) slots.push({ start: cursor, end: slot.start, state: "Available" });
     slots.push(slot);

@@ -290,7 +290,7 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
       ? availability
       : null;
   const availableSlots = schedule && !schedule.closed
-    ? courtTimeline(schedule.booked, date > cfg.today ? openingTime : schedule.firstStart)
+    ? courtTimeline(schedule.booked)
         .filter(slot => slot.state === "Available")
     : [];
   const start = parseTime(startText, startPeriod);

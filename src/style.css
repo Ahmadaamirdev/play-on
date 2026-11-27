@@ -853,7 +853,7 @@ main.player-home { width:100%; padding:0 0 22px; background:linear-gradient(150d
 
 .mobile-review { display:none; }
 .slot-state { display:inline-block; margin-left:6px; font-weight:650; }
-.player-home .booked-times li[data-state="Available"] { background:#e3f2e7; color:#235d38; }
+.player-home .booked-times li[data-state="Available"] { background:#216340; color:#fff; }
 .player-home .booked-times li[data-state="Booked"] { background:#e7ece9; color:#374d42; }
 @media(max-width:767px) {
   html { scroll-padding-block:70px 78px; }
