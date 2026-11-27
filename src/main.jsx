@@ -291,7 +291,7 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
       : null;
   const availableSlots = schedule && !schedule.closed
     ? courtTimeline(schedule.booked)
-        .filter(slot => slot.state === "Available")
+        .filter(slot => slot.state === "Available" && slot.end - slot.start >= 60)
     : [];
   const start = parseTime(startText, startPeriod);
   const end = parseTime(endText, endPeriod, true);

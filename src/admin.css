@@ -134,6 +134,8 @@ main.ops-main { background: #142d27; }
 .schedule-board .schedule-metrics strong { font-size:1.55rem; line-height:1.2; letter-spacing:normal; font-variant-numeric:tabular-nums; }
 .schedule-metrics span { font-size:.84rem; }
 .schedule-metrics .vip { background:linear-gradient(115deg,white,#f7f3fb); }
+.admin-workspace .scheduleline[data-vip="true"] { background:#eee4fb; }
+.admin-workspace .scheduleline[data-vip="true"] .badge { background:#fff; color:#6535a4; }
 .schedule-metrics .vip > svg { background:#eee4fb; color:#7845bb; }
 .schedule-metrics .pending { background:linear-gradient(115deg,white,#fbf6ef); }
 .schedule-metrics .pending > svg { background:#ffecd7; color:#ab610f; }

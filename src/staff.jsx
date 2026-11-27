@@ -156,6 +156,8 @@ function ExtendTime({ booking, limit, cfg, refresh }) {
     </Modal>}
   </>;
 }
+const isVipBooking = b => b.status === "VIP" || (b.status === "Confirmed" && Boolean(b.vip));
+
 function Schedule({ cfg, date, D, rev, refresh, M }) {
   const [sport, S] = useState("All"),
     [court, C] = useState("All"),
@@ -401,11 +403,11 @@ function Schedule({ cfg, date, D, rev, refresh, M }) {
                   <p className="scheduleline">No bookings.</p>
                 ) : (
                   slots.map((b, i) => (
-                    <div className="scheduleline" key={b.id}>
+                    <div className="scheduleline" data-vip={isVipBooking(b)} key={b.id}>
                       <span className="slot-time"><Clock3 />
                         {time(b.start)} – {time(b.start + b.duration)}
                       </span>
-                      <strong>{b.name}{b.status === "VIP" && " · VIP"}</strong>
+                      <strong>{b.name}{isVipBooking(b) && " · VIP"}</strong>
                       <Badge v={b.status} />
                       {current && DateTime.fromISO(date, { zone: cfg.zone }).startOf("day")
                         .plus({ minutes: b.start + b.duration }) > DateTime.now() &&
@@ -428,7 +430,7 @@ function Schedule({ cfg, date, D, rev, refresh, M }) {
             <p className="scheduleline">No bookings in this {viewMode.toLowerCase()}.</p>
           )}
           {rangeBookings.map((b) => (
-            <div className="scheduleline range-booking-row" key={b.id}>
+            <div className="scheduleline range-booking-row" data-vip={isVipBooking(b)} key={b.id}>
               <span className="slot-time"><CalendarDays size={14} />
                 {fmt(b.date)}
               </span>
@@ -436,7 +438,7 @@ function Schedule({ cfg, date, D, rev, refresh, M }) {
                 {time(b.start)} – {time(b.start + b.duration)}
               </span>
               <span className="slot-court">{cfg.courts.find(c => c.id === b.court)?.name}</span>
-              <strong>{b.name}{b.status === "VIP" && " · VIP"}</strong>
+              <strong>{b.name}{isVipBooking(b) && " · VIP"}</strong>
               <Badge v={b.status} />
             </div>
           ))}

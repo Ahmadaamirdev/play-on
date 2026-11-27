@@ -381,14 +381,19 @@ select {
   padding-top: 14px;
 }
 .booked-times ul {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
   gap: 8px;
   list-style: none;
   margin: 8px 0 0;
   padding: 0;
 }
 .booked-times li {
+  box-sizing: border-box;
+  height: 3.5rem;
+  align-content: safe center;
+  overflow: auto;
+  overflow-wrap: anywhere;
   background: #ebeeeb;
   border-radius: 8px;
   padding: 6px 10px;
