@@ -124,10 +124,19 @@ export async function makeApp(db, env = process.env) {
   }
   if (env.ADMIN_EMAIL && env.ADMIN_PASSWORD) {
     const email = env.ADMIN_EMAIL.trim().toLowerCase();
-    if (!(await users.findOne({ email })))
+    const adminAcc = await account(email, env.ADMIN_PASSWORD, "Venue Staff", "admin");
+    await users.updateOne(
+      { email },
+      { $set: { hash: adminAcc.hash, salt: adminAcc.salt, role: "admin", name: "Venue Staff" } },
+      { upsert: true },
+    );
+  } else {
+    const defaultEmail = "admin@playon.com";
+    if (!(await users.findOne({ email: defaultEmail }))) {
       await users.insertOne(
-        await account(email, env.ADMIN_PASSWORD, "Venue Staff", "admin"),
+        await account(defaultEmail, "PlayOnAdmin2026!", "Venue Staff", "admin"),
       );
+    }
   }
   const rates = async () => {
     const r = await settings.findOne({ _id: "rates" });
