@@ -282,3 +282,6 @@ main.ops-main { background: #142d27; }
   .finance-panel .finance-ledger td { padding:0; }
   .finance-details { min-width:44px; }
 }
+
+.extension-window { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.extension-window strong { margin-inline-start: auto; }

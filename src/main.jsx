@@ -289,6 +289,10 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
     availability?.court === court.id && availability.date === date
       ? availability
       : null;
+  const availableSlots = schedule && !schedule.closed
+    ? courtTimeline(schedule.booked, date > cfg.today ? openingTime : schedule.firstStart)
+        .filter(slot => slot.state === "Available")
+    : [];
   const start = parseTime(startText, startPeriod);
   const end = parseTime(endText, endPeriod, true);
   const validRange =
@@ -458,12 +462,20 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
                 <h3>{court.name} schedule</h3>
                 {schedule.booked.length === 0 && <small>No bookings for this court on this date.</small>}
                 <ul>
-                  {courtTimeline(schedule.booked, schedule.firstStart).map((slot) => (
+                  {schedule.booked.map((slot) => (
                     <li key={slot.start} data-state={slot.state}>
                       {time(slot.start)} – {time(slot.end)} · <strong>{slot.state}</strong>{slot.name && " · " + slot.name}
                     </li>
                   ))}
                 </ul>
+                {availableSlots.length > 0 && <>
+                  <h4>Available time</h4>
+                  <ul aria-label="Available time">
+                    {availableSlots.map(slot => <li key={slot.start} data-state="Available">
+                      {time(slot.start)} – {time(slot.end)} · <strong>Available</strong>
+                    </li>)}
+                  </ul>
+                </>}
               </div>
             )}
           </section>

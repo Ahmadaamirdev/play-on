@@ -136,7 +136,7 @@ function ExtendTime({ booking, limit, cfg, refresh }) {
   return <>
     <button onClick={() => { setOpen(true); setMinutes(""); setError(""); }}>Add time</button>
     {open && <Modal title={"Add time for " + booking.name} close={() => setOpen(false)}>
-      <p>{time(end)} – {time(end + limit)} available</p>
+      <p className="extension-window"><span>{time(end)} – {time(end + limit)} available</span><strong>Max {limit} minutes</strong></p>
       <form onSubmit={async event => {
         event.preventDefault();
         if (!valid || busy) return;
