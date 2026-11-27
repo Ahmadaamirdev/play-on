@@ -128,10 +128,10 @@ main.ops-main { background: #142d27; }
 .range-booking-row:first-child { border-top:0; }
 .slot-court { color:#50635c; font-size:.8rem; }
 .schedule-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(8px,1.4vw,22px); margin-bottom: 16px; }
-.schedule-metrics > div, .admin-workspace .daycourt { border:1px solid #e2e9e4; border-radius:14px; box-shadow:0 4px 14px #21382a0c; background:white; }
-.schedule-metrics > div { display:flex; align-items:center; gap:12px; padding:clamp(12px,1.5vw,22px); background:linear-gradient(115deg,white,#f4f9f5); }
+.schedule-board .schedule-metrics > div, .admin-workspace .daycourt { border:1px solid #e2e9e4; border-radius:14px; box-shadow:0 4px 14px #21382a0c; background:white; }
+.schedule-board .schedule-metrics > div { display:flex; align-items:center; justify-content:flex-start; gap:12px; margin-top:0; padding:clamp(12px,1.5vw,22px); font-weight:400; background:linear-gradient(115deg,white,#f4f9f5); }
 .schedule-metrics strong, .schedule-metrics span { display:block; }
-.schedule-metrics strong { font-size:1.55rem; line-height:1.2; font-variant-numeric:tabular-nums; }
+.schedule-board .schedule-metrics strong { font-size:1.55rem; line-height:1.2; letter-spacing:normal; font-variant-numeric:tabular-nums; }
 .schedule-metrics span { font-size:.84rem; }
 .schedule-metrics .vip { background:linear-gradient(115deg,white,#f7f3fb); }
 .schedule-metrics .vip > svg { background:#eee4fb; color:#7845bb; }
@@ -176,7 +176,7 @@ main.ops-main { background: #142d27; }
 .slot-time svg { width:15px; height:15px; color:#54675c; }
 @media(min-width:768px) and (max-width:1023px) {
   .admin-workspace .court-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .schedule-metrics > div { gap:6px; padding:10px; }
+  .schedule-board .schedule-metrics > div { gap:6px; padding:10px; }
   .schedule-metrics > div > svg { width:18px; height:18px; padding:6px; }
 }
 @media(max-width:767px) {
@@ -184,7 +184,7 @@ main.ops-main { background: #142d27; }
   .ops-sidebar > small { display:none; }
   .ops-content { border-radius:16px 16px 0 0; padding:16px 12px; }
   .schedule-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .schedule-metrics > div { padding:10px; gap:8px; }
+  .schedule-board .schedule-metrics > div { padding:10px; gap:8px; }
   .schedule-metrics > div > svg { width:20px; height:20px; padding:7px; }
 
 }
