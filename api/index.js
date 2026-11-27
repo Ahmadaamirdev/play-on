@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     console.error("Vercel Serverless Function Error:", err);
     res.status(500).json({
       error: "Internal Server Error",
-      message: err.message,
+      message: "Service temporarily unavailable.",
     });
   }
 }

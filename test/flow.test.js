@@ -444,7 +444,7 @@ test("venue workflow with real MongoDB", async (t) => {
     assert.equal(booking.duration, 60);
     assert.equal(booking.total, 3000);
     const availability = await json("/availability?" + new URLSearchParams({ court, date: targetDate }));
-    assert.deepEqual(availability.booked, [{ start: 603, end: 663, name: base.name, state: "On hold" }]);
+    assert.deepEqual(availability.booked, [{ start: 603, end: 663, state: "On hold" }]);
 
     const vip = { ...range, start: 662, end: 722, paymentType: "Complimentary" };
     const overlap = await request("/admin/vip", vip, admin);

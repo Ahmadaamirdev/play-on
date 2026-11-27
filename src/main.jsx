@@ -460,7 +460,7 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
                 <ul>
                   {schedule.booked.map((slot) => (
                     <li key={slot.start} data-state={slot.state}>
-                      {time(slot.start)} – {time(slot.end)} · <strong>{slot.name}</strong>{slot.state && <small className="slot-state">{slot.state}</small>}
+                      {time(slot.start)} – {time(slot.end)} · <strong>{slot.state || "Booked"}</strong>
                     </li>
                   ))}
                 </ul>

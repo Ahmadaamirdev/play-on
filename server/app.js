@@ -77,7 +77,8 @@ export async function makeApp(db, env = process.env) {
     users = db.collection("users"),
     sessions = db.collection("sessions"),
     receipts = db.collection("receipts"),
-    settings = db.collection("settings");
+    settings = db.collection("settings"),
+    rateLimits = db.collection("rateLimits");
   await ensureScheduleSchema(db);
   // Keep outstanding legacy holds without reviving slots already released.
   const cutoff = Date.now();
@@ -89,6 +90,7 @@ export async function makeApp(db, env = process.env) {
     ),
     users.createIndex({ email: 1 }, { unique: true }),
     sessions.createIndex({ until: 1 }, { expireAfterSeconds: 0 }),
+    rateLimits.createIndex({ until: 1 }, { expireAfterSeconds: 0 }),
     days.createIndexes([{ key: { "bookings.id": 1 } }, { key: { "bookings.owner": 1 } }]),
     settings.updateOne(
       { _id: "rates" },
@@ -130,13 +132,6 @@ export async function makeApp(db, env = process.env) {
       { $set: { hash: adminAcc.hash, salt: adminAcc.salt, role: "admin", name: "Venue Staff" } },
       { upsert: true },
     );
-  } else {
-    const defaultEmail = "admin@playon.com";
-    if (!(await users.findOne({ email: defaultEmail }))) {
-      await users.insertOne(
-        await account(defaultEmail, "PlayOnAdmin2026!", "Venue Staff", "admin"),
-      );
-    }
   }
   const rates = async () => {
     const r = await settings.findOne({ _id: "rates" });
@@ -222,17 +217,53 @@ export async function makeApp(db, env = process.env) {
   }
   const app = express();
   app.disable("x-powered-by");
+  const isSecureCookie =
+    env.SECURE_COOKIE === "true" ||
+    (Boolean(env.VERCEL) && env.SECURE_COOKIE !== "false");
+  const cookieOpts = {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: isSecureCookie,
+  };
+  app.use((req, res, next) => {
+    res.set({
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+      ...(isSecureCookie
+        ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" }
+        : {}),
+      ...(req.path.startsWith("/api")
+        ? { "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'" }
+        : {
+            "Content-Security-Policy":
+              "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+          }),
+    });
+    next();
+  });
   app.use(express.json({ limit: "32kb" }));
   app.use("/api", async (req, res, next) => {
     res.set("Cache-Control", "no-store");
     if (
+      req.body !== undefined &&
+      (req.body === null || typeof req.body !== "object" || Array.isArray(req.body))
+    )
+      fail(400, "Invalid request body.");
+    if (
       !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
-      req.headers.origin
+      req.headers.origin !== undefined
     ) {
-      const originHost = new URL(req.headers.origin).host;
+      let originHost = "";
+      try {
+        originHost = new URL(req.headers.origin).host;
+      } catch {
+        fail(403, "Cross-origin request denied.");
+      }
       const host = req.headers.host;
-      const forwardedHost = req.headers["x-forwarded-host"];
-      if (originHost !== host && originHost !== forwardedHost)
+      const forwardedHost = env.VERCEL ? req.headers["x-forwarded-host"] : undefined;
+      if (!originHost || (originHost !== host && originHost !== forwardedHost))
         fail(403, "Cross-origin request denied.");
     }
     // Both reads expose the same public court data for every visitor.
@@ -262,6 +293,23 @@ export async function makeApp(db, env = process.env) {
     req.user ? next() : fail(401, "Sign in to continue.");
   const staff = (req, res, next) =>
     req.user?.role === "admin" ? next() : fail(403, "Staff access required.");
+  const clientIp = (req) =>
+    (env.VERCEL && typeof req.headers["x-forwarded-for"] === "string"
+      ? req.headers["x-forwarded-for"].split(",")[0].trim()
+      : req.ip || req.socket?.remoteAddress || "unknown");
+  async function limit(key, max, windowMs, msg) {
+    const nowMs = Date.now();
+    await rateLimits.deleteMany({ _id: key, until: { $lte: new Date(nowMs) } });
+    const doc = await rateLimits.findOneAndUpdate(
+      { _id: key },
+      {
+        $inc: { count: 1 },
+        $setOnInsert: { until: new Date(nowMs + windowMs) },
+      },
+      { upsert: true, returnDocument: "after" },
+    );
+    if (doc.count > max) fail(429, msg);
+  }
   async function login(req, res, u) {
     const token = randomBytes(32).toString("hex"),
       user = {
@@ -276,11 +324,7 @@ export async function makeApp(db, env = process.env) {
       until: new Date(Date.now() + 86400000),
     });
     res.cookie("playon", token, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure:
-        env.SECURE_COOKIE === "true" ||
-        (Boolean(env.VERCEL) && env.SECURE_COOKIE !== "false"),
+      ...cookieOpts,
       maxAge: 86400000,
     });
     res.json(user);
@@ -305,6 +349,12 @@ export async function makeApp(db, env = process.env) {
   app.post("/api/login", async (req, res) => {
     const email = clean(req.body.email).toLowerCase(),
       p = clean(req.body.password, 160);
+    await limit(
+      `login:${clientIp(req)}:${email}`,
+      Number(env.LOGIN_RATE_LIMIT || 15),
+      15 * 60 * 1000,
+      "Too many sign-in attempts. Try again later.",
+    );
     const u = await users.findOne({ email });
     if (
       !u ||
@@ -322,6 +372,12 @@ export async function makeApp(db, env = process.env) {
     await login(req, res, u);
   });
   app.post("/api/register", async (req, res) => {
+    await limit(
+      `register:${clientIp(req)}`,
+      Number(env.REGISTER_RATE_LIMIT || 10),
+      15 * 60 * 1000,
+      "Too many registration attempts. Try again later.",
+    );
     const email = clean(req.body.email).toLowerCase(),
       p = clean(req.body.password, 160),
       name = clean(req.body.name);
@@ -340,7 +396,7 @@ export async function makeApp(db, env = process.env) {
   });
   app.post("/api/logout", async (req, res) => {
     if (req.sessionId) await sessions.deleteOne({ _id: req.sessionId });
-    res.clearCookie("playon").json({ ok: true });
+    res.clearCookie("playon", cookieOpts).json({ ok: true });
   });
   app.get("/api/availability", async (req, res) => {
     const { court, date } = req.query;
@@ -348,7 +404,7 @@ export async function makeApp(db, env = process.env) {
     const [schedule, hourlyRates] = await Promise.all([readDay(date), rates()]);
     const booked = schedule.bookings
       .filter((b) => b.court === court && active(b))
-      .map((b) => ({ start: b.start, end: b.start + b.duration, name: b.name,
+      .map((b) => ({ start: b.start, end: b.start + b.duration,
         state: ["Awaiting payment", "Pending verification"].includes(b.status) ? "On hold" : "Booked" }))
       .sort((a, b) => a.start - b.start);
     res.json({
@@ -411,6 +467,28 @@ export async function makeApp(db, env = process.env) {
     const duration = end === undefined ? req.body.duration : end - start;
     interval(date, start, duration);
     check(duration >= 60, "Bookings must be at least 60 minutes.");
+    if (!vip) {
+      await limit(
+        `hold:${req.user.id}`,
+        Number(env.HOLD_RATE_LIMIT || 20),
+        15 * 60 * 1000,
+        "Too many hold requests. Try again later.",
+      );
+      const maxDate = now().plus({ days: 365 }).toISODate();
+      check(date <= maxDate, "Choose a date within the next 365 days.");
+      const unpaidDocs = await days
+        .find({
+          bookings: { $elemMatch: { owner: req.user.id, status: "Awaiting payment" } },
+        })
+        .toArray();
+      const unpaidCount = unpaidDocs
+        .flatMap((d) => d.bookings)
+        .filter((x) => x.owner === req.user.id && x.status === "Awaiting payment" && active(x)).length;
+      check(
+        unpaidCount < Number(env.MAX_UNPAID_HOLDS || 5),
+        "Complete or cancel an existing unpaid hold before creating another.",
+      );
+    }
     const rate = (await rates())[c.id],
       total = bookingTotal(rate, duration);
     if (!vip && quotedTotal !== total)
