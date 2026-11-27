@@ -26,7 +26,7 @@ import {
   TimeInput,
 } from "./shared";
 
-import { closingTime, openingTime } from "../booking.js";
+import { extensionCharge, closingTime, openingTime } from "../booking.js";
 const sports = ["Cricket", "Tennis", "Padel"],
   tabs = [
     ["Schedule", CalendarDays],
@@ -123,6 +123,38 @@ export default function Admin({ cfg, reload, staffTools }) {
       </div>
     </div>
   );
+}
+function ExtendTime({ booking, limit, cfg, refresh }) {
+  const [open, setOpen] = useState(false);
+  const [minutes, setMinutes] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const extra = Number(minutes);
+  const valid = Number.isInteger(extra) && extra > 0 && extra <= limit;
+  const end = booking.start + booking.duration;
+  if (limit <= 0) return null;
+  return <>
+    <button onClick={() => { setOpen(true); setMinutes(""); setError(""); }}>Add time</button>
+    {open && <Modal title={"Add time for " + booking.name} close={() => setOpen(false)}>
+      <p>{time(end)} – {time(end + limit)} available</p>
+      <form onSubmit={async event => {
+        event.preventDefault();
+        if (!valid || busy) return;
+        setBusy(true);
+        try {
+          await api("/admin/extend/" + booking.id, { minutes: extra, end, date: booking.date, court: booking.court });
+          setOpen(false); refresh();
+        } catch (e) { setError(e.message); refresh(); }
+        finally { setBusy(false); }
+      }}>
+        <label>Additional minutes<input type="number" min="1" max={limit} required value={minutes}
+          onChange={e => setMinutes(e.target.value)} /></label>
+        {valid && <p>New end time · {time(end + extra)}<br />Additional payment · {amount(extensionCharge(booking, extra), cfg.currency)}</p>}
+        {error && <p role="alert">{error}</p>}
+        <button className="primary" disabled={!valid || busy}>{["Confirmed", "VIP"].includes(booking.status) && valid && extensionCharge(booking, extra) > 0 ? "Confirm payment received and extend" : "Confirm extension"}</button>
+      </form>
+    </Modal>}
+  </>;
 }
 function Schedule({ cfg, date, D, rev, refresh, M }) {
   const [sport, S] = useState("All"),
@@ -368,13 +400,17 @@ function Schedule({ cfg, date, D, rev, refresh, M }) {
                 ) : slots.length === 0 ? (
                   <p className="scheduleline">No bookings.</p>
                 ) : (
-                  slots.map((b) => (
+                  slots.map((b, i) => (
                     <div className="scheduleline" key={b.id}>
                       <span className="slot-time"><Clock3 />
                         {time(b.start)} – {time(b.start + b.duration)}
                       </span>
                       <strong>{b.name}{b.status === "VIP" && " · VIP"}</strong>
                       <Badge v={b.status} />
+                      {current && DateTime.fromISO(date, { zone: cfg.zone }).startOf("day")
+                        .plus({ minutes: b.start + b.duration }) > DateTime.now() &&
+                        <ExtendTime key={b.id + "-" + b.duration} booking={b} cfg={cfg} refresh={refresh}
+                          limit={(slots[i + 1]?.start ?? closingTime) - b.start - b.duration} />}
                     </div>
                   ))
                 )}
@@ -734,9 +770,10 @@ function Rates({ cfg, reload, M }) {
 }
 function Players({ cfg, rev }) {
   const [query, setQuery] = useState("");
+  const [byId, setById] = useState(false);
   const [selected, setSelected] = useState(null);
   const [players, searchError] = useData(
-    () => api("/admin/players?" + new URLSearchParams({ q: query })), [query, rev],
+    () => api("/admin/players?" + new URLSearchParams(byId ? { id: query.trim().toUpperCase().startsWith("PO-") ? query.trim().toUpperCase() : query.trim() } : { q: query })), [query, byId, rev],
   );
   const [result, profileError] = useData(
     () => selected ? api("/admin/players/" + selected) : Promise.resolve(null), [selected, rev],
@@ -744,8 +781,9 @@ function Players({ cfg, rev }) {
   return (
     <section className="panel">
       <h2>Players</h2>
+      <button aria-pressed={byId} onClick={() => { setById(!byId); setQuery(""); }}>{byId ? "Search by name or email" : "Search by ID"}</button>
       <label>
-        Search by name or email
+        {byId ? "Player ID or booking ID" : "Search by name or email"}
         <input type="search" value={query} maxLength={100} onChange={(e) => setQuery(e.target.value)} />
       </label>
       {searchError && <p role="alert">{searchError}</p>}
@@ -763,6 +801,7 @@ function Players({ cfg, rev }) {
           {profileError && <p role="alert">{profileError}</p>}
           {result?.profile._id === selected && (
             <>
+              <Row k="Player ID">{result.profile._id}</Row>
               <Row k="Name">{result.profile.name}</Row>
               <Row k="Email">{result.profile.email}</Row>
               <h3>Booking history</h3>

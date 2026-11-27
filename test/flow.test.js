@@ -475,6 +475,19 @@ test("venue workflow with real MongoDB", async (t) => {
     assert.equal(adjacent.duration, 60);
     const midnight = await json("/hold", { ...range, start: 1380, end: 1440, quotedTotal: 3000 }, player);
     assert.equal(midnight.duration, 60);
+    const bookedBy = await json("/availability?" + new URLSearchParams({ court, date: targetDate }), undefined, player);
+    assert.equal(bookedBy.booked[0].name, booking.name);
+    const matches = await json("/admin/players?id=" + booking.id, undefined, admin);
+    assert.equal(matches[0]._id, booking.owner);
+    const extend = { date: targetDate, court, end: 663, minutes: 15 };
+    assert.equal((await request("/admin/extend/" + booking.id, extend, admin)).status, 409);
+    const paid = await json("/admin/vip", { ...vip, start: 900, end: 960, paymentType: "Paid" }, admin);
+    const extension = { ...extend, end: 960 };
+    await json("/admin/extend/" + paid.id, extension, admin);
+    assert.equal((await request("/admin/extend/" + paid.id, extension, admin)).status, 409);
+    const extended = await json("/admin/check/" + paid.id, undefined, admin);
+    assert.equal(extended.duration, 75);
+    assert.equal(extended.total, 3750);
   });
   await t.test("existing invoice booking IDs still resolve", async () => {
     const legacyDate = now.plus({ days: 6 }).toISODate();

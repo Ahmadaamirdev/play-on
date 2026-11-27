@@ -28,7 +28,7 @@ import {
   PhoneInput,
   TimeInput,
 } from "./shared";
-import { bookingTotal, closingTime, openingTime } from "../booking.js";
+import { courtTimeline, bookingTotal, closingTime, openingTime } from "../booking.js";
 import "./admin.css";
 import "./style.css";
 import "./booking-receipt.css";
@@ -458,9 +458,9 @@ function Player({ cfg, selection, setSelection, sign, toMine }) {
                 <h3>{court.name} schedule</h3>
                 {schedule.booked.length === 0 && <small>No bookings for this court on this date.</small>}
                 <ul>
-                  {schedule.booked.map((slot) => (
+                  {courtTimeline(schedule.booked, schedule.firstStart).map((slot) => (
                     <li key={slot.start} data-state={slot.state}>
-                      {time(slot.start)} – {time(slot.end)} · <strong>{slot.state || "Booked"}</strong>
+                      {time(slot.start)} – {time(slot.end)} · <strong>{slot.state}</strong>{slot.name && " · " + slot.name}
                     </li>
                   ))}
                 </ul>

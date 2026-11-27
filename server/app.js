@@ -13,7 +13,7 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import path from "node:path";
-import { bookingTotal, closingTime, openingTime, time } from "../booking.js";
+import { extensionCharge, bookingTotal, closingTime, openingTime, time } from "../booking.js";
 const derive = promisify(scrypt);
 const digest = (s) => createHash("sha256").update(s).digest("hex");
 const sports = ["Cricket", "Tennis", "Padel"];
@@ -268,8 +268,7 @@ export async function makeApp(db, env = process.env) {
       if (!originHost || (originHost !== host && originHost !== forwardedHost))
         fail(403, "Cross-origin request denied.");
     }
-    // Both reads expose the same public court data for every visitor.
-    if (req.method === "GET" && ["/availability", "/slots"].includes(req.path)) return next();
+    if (req.method === "GET" && req.path === "/slots") return next();
     const token = (req.headers.cookie || "").match(
       /(?:^|;\s*)playon=([a-f0-9]{64})(?:;|$)/,
     )?.[1];
@@ -406,7 +405,7 @@ export async function makeApp(db, env = process.env) {
     const [schedule, hourlyRates] = await Promise.all([readDay(date), rates()]);
     const booked = schedule.bookings
       .filter((b) => b.court === court && active(b))
-      .map((b) => ({ start: b.start, end: b.start + b.duration,
+      .map((b) => ({ start: b.start, end: b.start + b.duration, ...(req.user ? { name: b.name } : {}),
         state: ["Awaiting payment", "Pending verification"].includes(b.status) ? "On hold" : "Booked" }))
       .sort((a, b) => a.start - b.start);
     res.json({
@@ -565,6 +564,15 @@ export async function makeApp(db, env = process.env) {
   const playerProfile = { name: 1, email: 1 };
   app.get("/api/admin/players", staff, async (req, res) => {
     const query = clean(req.query.q);
+    if (req.query.id !== undefined) {
+      const id = clean(req.query.id);
+      const booking = id.startsWith("PO-") ? await days.findOne({ "bookings.id": id },
+        { projection: { bookings: { $elemMatch: { id } } } }) : null;
+      const owner = booking?.bookings[0]?.owner ?? id;
+      const player = ObjectId.isValid(owner) && await users.findOne(
+        { _id: new ObjectId(owner), role: "player" }, { projection: playerProfile });
+      return res.json(player ? [player] : []);
+    }
     const pattern = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
     res.json(await users.find({ role: "player", $or: [{ name: pattern }, { email: pattern }] },
       { projection: playerProfile }).sort({ name: 1, _id: 1 }).limit(30).toArray());
@@ -760,6 +768,20 @@ export async function makeApp(db, env = process.env) {
           { affected },
         );
       d.closed = [...new Set([...d.closed, ...ids])];
+    });
+    res.json({ ok: true });
+  });
+  app.post("/api/admin/extend/:id", staff, async (req, res) => {
+    const { date, court, end, minutes } = req.body;
+    check(Number.isInteger(minutes) && minutes > 0, "Enter a positive number of minutes.");
+    await change(day(date), (schedule) => {
+      const b = schedule.bookings.find(b => b.id === req.params.id);
+      if (!b || !active(b) || b.court !== court || b.start + b.duration !== end ||
+          end < firstStart(date) || end + minutes > closingTime ||
+          !available(schedule, court, end, minutes, b.id))
+        fail(409, "This time is no longer available. Refresh the schedule.");
+      b.total = Math.round((b.total + extensionCharge(b, minutes)) * 100) / 100;
+      b.duration += minutes;
     });
     res.json({ ok: true });
   });
